@@ -15,8 +15,10 @@ from os.path import isfile, join
 from matplotlib import pyplot as plt
 import moviepy.editor as mpe
 import natsort
+import wave
 
 im_shape = (320, 180)
+total_frames = -1
 
 # Creates an array of shot-change frames
 def ShotChange(full_frame_path):
@@ -27,6 +29,7 @@ def ShotChange(full_frame_path):
     files = os.listdir(full_frame_path)
     # number of frames in folder
     num = len(files)
+    total_frames = num
     # initialize the shot change array variable
     # keep the very first frame as a scene change
     shot_change = [0]
@@ -35,9 +38,9 @@ def ShotChange(full_frame_path):
     # calculate the ssim on the first 3 frames
     # 4 JSON frames - a b c d - comparisions: ab, bc, cd
     # if bc goes down far enough, that is considered a new shot
-    frame_a = cv2.imread(full_frame_path+'frame0.rgb')
-    frame_b = cv2.imread(full_frame_path+'frame1.rgb')
-    frame_c = cv2.imread(full_frame_path+'frame2.rgb')
+    frame_a = cv2.imread(full_frame_path+'frame0.jpg')
+    frame_b = cv2.imread(full_frame_path+'frame1.jpg')
+    frame_c = cv2.imread(full_frame_path+'frame2.jpg')
     frame_a_bw = cv2.cvtColor(frame_a, cv2.COLOR_BGR2GRAY)
     frame_b_bw = cv2.cvtColor(frame_b, cv2.COLOR_BGR2GRAY)
     frame_c_bw = cv2.cvtColor(frame_c, cv2.COLOR_BGR2GRAY)
@@ -47,7 +50,7 @@ def ShotChange(full_frame_path):
     # only go up to number of frames-3
     for i in range(0, num-3):
         # read in four frames to opencv
-        frame_d = cv2.imread(full_frame_path+'frame'+str(i+3)+'.rgb')
+        frame_d = cv2.imread(full_frame_path+'frame'+str(i+3)+'.jpg')
         # convert them to grayscale
         frame_d_bw = cv2.cvtColor(frame_d, cv2.COLOR_BGR2GRAY)
         # calculate ssim between adjacent frames
@@ -103,15 +106,28 @@ def MakeSummaryFrames(full_frame_path,summary_frame_path, shot_change):
             # z = z+1
 
 # Convert frames folder to video using OpenCV
-def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height):
+def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_path):
     frame_array = []
+    audio_frames = []
     files = [f for f in os.listdir(summary_frame_path) if isfile(join(summary_frame_path,f))]
+
+    audio_object = wave.open(audio_path, 'r')
+    framerate = audio_object.getframerate()
+    print(audio_object.getnframes())
+
     # sort the files
     # see python reference https://docs.python.org/3/howto/sorting.html
     files.sort()
     for i in range(len(files)):
         filename=summary_frame_path+files[i]
         #reading each files
+        FrameNum = int(os.path.splitext(files[i])[0])
+        # Convert to audio frame
+        AudioFrameNum = FrameNum * framerate / 30
+        audio_object.setpos(AudioFrameNum)
+        NewAudioFrames = audio_object.readframes(int(framerate / 30))
+        audio_frames.append(NewAudioFrames)
+
         img = cv2.imread(filename)
         # height, width, layers = img.shape
         # size = (width,height)
@@ -127,6 +143,17 @@ def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height):
         # writing to a image array
         out.write(frame_array[i])
     out.release()
+
+    # Write new audio file
+    sampleRate = framerate # hertz
+    duration = len(audio_frames) / framerate # seconds
+    obj = wave.open('sound.wav','w')
+    obj.setnchannels(2) # mono
+    obj.setsampwidth(2)
+    obj.setframerate(sampleRate)
+    for i in range(len(audio_frames)):
+        obj.writeframesraw(audio_frames[i])
+    obj.close()
 
 def ReadRGBFiles(full_frame_path):
     ims = []
@@ -154,9 +181,9 @@ def ReadRGBFiles(full_frame_path):
                 row = []
                 for k in range(im_shape[0]):
                     pixel = []
-                    pixel.append(Bbuf[j*im_shape[0]+ k])
-                    pixel.append(Gbuf[j*im_shape[0]+ k])
                     pixel.append(Rbuf[j*im_shape[0]+ k])
+                    pixel.append(Gbuf[j*im_shape[0]+ k])
+                    pixel.append(Bbuf[j*im_shape[0]+ k])
                     row.append(pixel)
                 
                 im_array.append(row)
@@ -193,13 +220,15 @@ def SyncVideoWithAudio(full_frame_path, video_name, audio_path):
     # final_audio = mpe.CompositeAudioClip([my_clip.audio, audio_background])
     final_clip = my_clip.set_audio(audio_background)
     final_clip.write_videofile(video_name,fps=30)
-    
+
+    final_clip.close()
+    audio_background.close()
     
 
 def main():
 
     # directory of full video frames - ordered frame1.jpg, frame2.jpg, etc.
-    full_frame_path = "project_dataset/frames/soccer/"
+    full_frame_path = "project_dataset/frames_rgb/soccer/"
 
     # audio path
     audio_path = "project_dataset/audio/soccer.wav"
@@ -213,9 +242,9 @@ def main():
     # path for video with audio
     summary_video_audio_path = "summary/soccer/video/soccer_audio.mp4"
 
-    SyncVideoWithAudio(full_frame_path, summary_video_audio_path, audio_path)
+    # SyncVideoWithAudio(full_frame_path, summary_video_audio_path, audio_path)
 
-    #ReadRGBFiles(full_frame_path)
+    ReadRGBFiles(full_frame_path)
 
     # get shot_change array
     # shot_change = ShotChange(full_frame_path)
@@ -224,7 +253,24 @@ def main():
     # MakeSummaryFrames(full_frame_path,summary_frame_path,shot_change)
 
     # # make a video from the summary frame folder
-    # FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180)
+    # FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path)
+
+    # # obj = wave.open(audio_path, 'r')
+    # # print( "Number of channels",obj.getnchannels())
+    # # print ( "Sample width",obj.getsampwidth())
+    # # print ( "Frame rate.",obj.getframerate())
+    # # print ("Number of frames",obj.getnframes())
+    # # print ( "parameters:",obj.getparams())
+
+    # # Number of channels 2
+    # # Sample width 2
+    # # Frame rate. 48000
+    # # Number of frames 25935872
+    # # parameters: _wave_params(nchannels=2, sampwidth=2, framerate=48000, nframes=25935872, comptype='NONE', compname='not compressed')
+
+    # # 1600 audio frames per video frame
+    # # obj.close()
+
 
 if __name__=="__main__":
     main()
