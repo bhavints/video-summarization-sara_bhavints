@@ -179,15 +179,15 @@ def SyncVideoWithAudio(full_frame_path, video_name, audio_path):
     height, width, layers = frame.shape
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    video = cv2.VideoWriter(video_name, fourcc, 30, (width,height))
+    video = cv2.VideoWriter("temp.mp4", fourcc, 30, (width,height))
 
-    for image in images:
+    for image in sorted(images):
         video.write(cv2.imread(os.path.join(full_frame_path, image)))
 
     cv2.destroyAllWindows()
     video.release()
 
-    my_clip = mpe.VideoFileClip(video_name)
+    my_clip = mpe.VideoFileClip("temp.mp4")
     audio_background = mpe.AudioFileClip(audio_path)
     # final_audio = mpe.CompositeAudioClip([my_clip.audio, audio_background])
     final_clip = my_clip.set_audio(audio_background)
