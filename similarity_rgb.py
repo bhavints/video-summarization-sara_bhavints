@@ -14,6 +14,7 @@ import os
 from os.path import isfile, join
 from matplotlib import pyplot as plt
 import moviepy.editor as mpe
+import natsort
 
 im_shape = (320, 180)
 
@@ -174,14 +175,14 @@ def ReadRGBFiles(full_frame_path):
 
 def SyncVideoWithAudio(full_frame_path, video_name, audio_path):
 
-    images = [img for img in sorted(os.listdir(full_frame_path)) if img.endswith(".jpg")]
+    images = [img for img in natsort.natsorted((os.listdir(full_frame_path))) if img.endswith(".jpg")]
     frame = cv2.imread(os.path.join(full_frame_path, images[0]))
     height, width, layers = frame.shape
 
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     video = cv2.VideoWriter("temp.mp4", fourcc, 30, (width,height))
 
-    for image in sorted(images):
+    for image in images:
         video.write(cv2.imread(os.path.join(full_frame_path, image)))
 
     cv2.destroyAllWindows()
