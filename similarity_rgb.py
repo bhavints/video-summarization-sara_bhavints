@@ -13,6 +13,7 @@ import struct
 import os
 from os.path import isfile, join
 from matplotlib import pyplot as plt
+import moviepy.editor as mpe
 
 im_shape = (320, 180)
 
@@ -171,11 +172,36 @@ def ReadRGBFiles(full_frame_path):
             # cv2.imshow("image", im_array)
             # cv2.waitKey()
 
+def SyncVideoWithAudio(full_frame_path, video_name, audio_path):
+
+    images = [img for img in sorted(os.listdir(full_frame_path)) if img.endswith(".jpg")]
+    frame = cv2.imread(os.path.join(full_frame_path, images[0]))
+    height, width, layers = frame.shape
+
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    video = cv2.VideoWriter(video_name, fourcc, 30, (width,height))
+
+    for image in images:
+        video.write(cv2.imread(os.path.join(full_frame_path, image)))
+
+    cv2.destroyAllWindows()
+    video.release()
+
+    my_clip = mpe.VideoFileClip(video_name)
+    audio_background = mpe.AudioFileClip(audio_path)
+    # final_audio = mpe.CompositeAudioClip([my_clip.audio, audio_background])
+    final_clip = my_clip.set_audio(audio_background)
+    final_clip.write_videofile(video_name,fps=30)
+    
+    
 
 def main():
 
     # directory of full video frames - ordered frame1.jpg, frame2.jpg, etc.
-    full_frame_path = "project_dataset/frames_rgb/soccer/"
+    full_frame_path = "project_dataset/frames/soccer/"
+
+    # audio path
+    audio_path = "project_dataset/audio/soccer.wav"
 
     # directory for summary frames
     summary_frame_path = "summary/soccer/frames/"
@@ -183,7 +209,12 @@ def main():
     # directory for summary video
     summary_video_path = "summary/soccer/video/soccer.mp4"
 
-    ReadRGBFiles(full_frame_path)
+    # path for video with audio
+    summary_video_audio_path = "summary/soccer/video/soccer_audio.mp4"
+
+    SyncVideoWithAudio(full_frame_path, summary_video_audio_path, audio_path)
+
+    #ReadRGBFiles(full_frame_path)
 
     # get shot_change array
     # shot_change = ShotChange(full_frame_path)
