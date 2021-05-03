@@ -295,10 +295,13 @@ def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_
         filename=summary_frame_path+files[i]
         FrameNum = int(os.path.splitext(files[i])[0])
         # Convert to audio frame
-        AudioFrameNum = (FrameNum // 30) * framerate
-        # print(AudioFrameNum)
+        print(files[i])
+        print(FrameNum)
+        AudioFrameNum = ((FrameNum * framerate) // 30)
+        print(AudioFrameNum)
         NumFramesToRead = (framerate // 30)
-        # print(NumFramesToRead)
+        print(NumFramesToRead)
+
         audio_object.setpos(AudioFrameNum)
         NewAudioFrames = audio_object.readframes(NumFramesToRead)
         audio_frames.append(NewAudioFrames)
