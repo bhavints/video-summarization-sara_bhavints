@@ -257,15 +257,15 @@ def MakeCollage(framechange_array, frames_jpg_path, collage_path):
 def main():
 
     # name of the video to process
-    video_name = 'soccer'
+    video_name = 'concert'
 
     # jpg video frames to be analyzed - ordered frame0.jpg, frame1.jpg, etc.
-    frames_jpg_path = '../project_files/project_dataset/frames/'+video_name+'/'
+    frames_jpg_path = 'project_dataset/frames/'+video_name+'/'
 
     # directory for summary frames and summary video
-    summary_frame_path = '../project_files/summary/'+video_name+'/frames/'
-    summary_video_path = '../project_files/summary/'+video_name+'/summary.mp4'
-    collage_path = '../project_files/summary/'+video_name+'/collage.jpg'
+    summary_frame_path = 'summary/'+video_name+'/frames/'
+    summary_video_path = 'summary/'+video_name+'/summary.mp4'
+    collage_path = 'summary/'+video_name+'/collage.jpg'
 
     # start processing the video
 
@@ -322,6 +322,12 @@ def main():
     # optional - make a photo collage of the shots
     print('\nbonus: photo collage of scenes saved as collage.jpg in the root folder')
     MakeCollage(framechange_array, frames_jpg_path, collage_path)
+
+    # Add audio
+
+    # Play with video player
+    # vp.PlayVideo(summary_video_path)
+
 
 
 if __name__=="__main__":

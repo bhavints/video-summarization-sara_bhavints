@@ -16,6 +16,9 @@ from matplotlib import pyplot as plt
 import moviepy.editor as mpe
 import natsort
 import wave
+import videoplayer as vp
+import sys
+import struct
 
 im_shape = (320, 180)
 total_frames = -1
@@ -106,7 +109,7 @@ def MakeSummaryFrames(full_frame_path,summary_frame_path, shot_change):
             # z = z+1
 
 # Convert frames folder to video using OpenCV
-def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_path):
+def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_path,new_summary_audio_path):
     frame_array = []
     audio_frames = []
     files = [f for f in os.listdir(summary_frame_path) if isfile(join(summary_frame_path,f))]
@@ -123,9 +126,12 @@ def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_
         #reading each files
         FrameNum = int(os.path.splitext(files[i])[0])
         # Convert to audio frame
-        AudioFrameNum = FrameNum * framerate / 30
+        AudioFrameNum = FrameNum * framerate // 30
+        # print(AudioFrameNum)
+        NumFramesToRead = (framerate // 30)
+        # print(NumFramesToRead)
         audio_object.setpos(AudioFrameNum)
-        NewAudioFrames = audio_object.readframes(int(framerate / 30))
+        NewAudioFrames = audio_object.readframes(NumFramesToRead)
         audio_frames.append(NewAudioFrames)
 
         img = cv2.imread(filename)
@@ -147,10 +153,33 @@ def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_
     # Write new audio file
     sampleRate = framerate # hertz
     duration = len(audio_frames) / framerate # seconds
-    obj = wave.open('sound.wav','w')
+    obj = wave.open(new_summary_audio_path,'w')
     obj.setnchannels(2) # mono
     obj.setsampwidth(2)
     obj.setframerate(sampleRate)
+
+    # Do audio analysis on audio_frames?
+    # audio_object.setpos(10003423)
+    # byte_obj = audio_object.readframes(1)
+    # UnpackedChannels = struct.unpack("<hh", byte_obj)
+    # LeftChannel = UnpackedChannels[0]
+    # RightChannel = UnpackedChannels[1]
+    # # LeftChannel = int.from_bytes(byte_obj[:2], byteorder=sys.byteorder)
+    # # RightChannel = int.from_bytes(byte_obj[2:], byteorder=sys.byteorder)
+    # # print(byte_obj)
+    # # print(byte_obj[:2])
+    # print(LeftChannel)
+    # # print(byte_obj[2:])
+    # print(RightChannel)
+    # # print(len(byte_obj))
+
+    # frame_magnitudes
+    # for i in range(len(audio_frames)):
+    #     print(len(audio_frames[i]))
+
+
+    # os.system("pause")
+
     for i in range(len(audio_frames)):
         obj.writeframesraw(audio_frames[i])
     obj.close()
@@ -193,34 +222,35 @@ def ReadRGBFiles(full_frame_path):
 
             im_array = np.array(im_array)
             im_array = im_array.reshape(im_shape[1], im_shape[0], 3)
-            print(im_array.shape)
+            # print(im_array.shape)
             plt.imshow(im_array)
             plt.show()
             # cv2.imwrite('color_img.jpg', im_array)
             # cv2.imshow("image", im_array)
             # cv2.waitKey()
 
-def SyncVideoWithAudio(full_frame_path, video_name, audio_path):
+def SyncVideoWithAudio(old_video_name, video_name, audio_path):
 
-    images = [img for img in natsort.natsorted((os.listdir(full_frame_path))) if img.endswith(".jpg")]
-    frame = cv2.imread(os.path.join(full_frame_path, images[0]))
-    height, width, layers = frame.shape
+    # images = [img for img in natsort.natsorted((os.listdir(full_frame_path))) if img.endswith(".jpg")]
+    # frame = cv2.imread(os.path.join(full_frame_path, images[0]))
+    # height, width, layers = frame.shape
 
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    video = cv2.VideoWriter("temp.mp4", fourcc, 30, (width,height))
+    # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    # video = cv2.VideoWriter("temp.mp4", fourcc, 30, (width,height))
 
-    for image in images:
-        video.write(cv2.imread(os.path.join(full_frame_path, image)))
+    # for image in images:
+    #     video.write(cv2.imread(os.path.join(full_frame_path, image)))
 
-    cv2.destroyAllWindows()
-    video.release()
+    # cv2.destroyAllWindows()
+    # video.release()
 
-    my_clip = mpe.VideoFileClip("temp.mp4")
+    my_clip = mpe.VideoFileClip(old_video_name)
     audio_background = mpe.AudioFileClip(audio_path)
     # final_audio = mpe.CompositeAudioClip([my_clip.audio, audio_background])
     final_clip = my_clip.set_audio(audio_background)
     final_clip.write_videofile(video_name,fps=30)
 
+    my_clip.close()
     final_clip.close()
     audio_background.close()
     
@@ -228,7 +258,7 @@ def SyncVideoWithAudio(full_frame_path, video_name, audio_path):
 def main():
 
     # directory of full video frames - ordered frame1.jpg, frame2.jpg, etc.
-    full_frame_path = "project_dataset/frames_rgb/soccer/"
+    # full_frame_path = "project_dataset/frames_rgb/soccer/"
 
     # audio path
     audio_path = "project_dataset/audio/soccer.wav"
@@ -237,14 +267,17 @@ def main():
     summary_frame_path = "summary/soccer/frames/"
 
     # directory for summary video
-    summary_video_path = "summary/soccer/video/soccer.mp4"
+    # summary_video_path = "summary/soccer/summary.mp4"
+    summary_video_path = "summary/soccer/video/soccer_video.mp4"
 
     # path for video with audio
     summary_video_audio_path = "summary/soccer/video/soccer_audio.mp4"
 
+    new_summary_audio_path = "summary/soccer/video/sound.wav"
+
     # SyncVideoWithAudio(full_frame_path, summary_video_audio_path, audio_path)
 
-    ReadRGBFiles(full_frame_path)
+    # ReadRGBFiles(full_frame_path)
 
     # get shot_change array
     # shot_change = ShotChange(full_frame_path)
@@ -253,14 +286,20 @@ def main():
     # MakeSummaryFrames(full_frame_path,summary_frame_path,shot_change)
 
     # # make a video from the summary frame folder
-    # FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path)
+    FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path, new_summary_audio_path)
 
-    # # obj = wave.open(audio_path, 'r')
-    # # print( "Number of channels",obj.getnchannels())
-    # # print ( "Sample width",obj.getsampwidth())
-    # # print ( "Frame rate.",obj.getframerate())
-    # # print ("Number of frames",obj.getnframes())
-    # # print ( "parameters:",obj.getparams())
+    #SyncVideoWithAudio(summary_video_path, summary_video_audio_path, new_summary_audio_path)
+
+    
+
+    vp.PlayVideo(summary_video_audio_path)
+
+    # obj = wave.open(audio_path, 'r')
+    # print( "Number of channels",obj.getnchannels())
+    # print ( "Sample width",obj.getsampwidth())
+    # print ( "Frame rate.",obj.getframerate())
+    # print ("Number of frames",obj.getnframes())
+    # print ( "parameters:",obj.getparams())
 
     # # Number of channels 2
     # # Sample width 2
