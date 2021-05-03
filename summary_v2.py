@@ -295,12 +295,12 @@ def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_
         filename=summary_frame_path+files[i]
         FrameNum = int(os.path.splitext(files[i])[0])
         # Convert to audio frame
-        print(files[i])
-        print(FrameNum)
+        # print(files[i])
+        # print(FrameNum)
         AudioFrameNum = ((FrameNum * framerate) // 30)
-        print(AudioFrameNum)
+        # print(AudioFrameNum)
         NumFramesToRead = (framerate // 30)
-        print(NumFramesToRead)
+        # print(NumFramesToRead)
 
         audio_object.setpos(AudioFrameNum)
         NewAudioFrames = audio_object.readframes(NumFramesToRead)
@@ -472,12 +472,11 @@ def main():
     # Adding audio to video
     SyncVideoWithAudio(summary_video_path, summary_video_audio_path, new_audio_path)
 
-
     # optional - make a photo collage of the shots
-    # print('\nbonus: photo collage of scenes saved as collage.jpg in the root folder')
+    print('\nbonus: photo collage of scenes saved as collage.jpg in the root folder')
     # MakeCollage(framechange_array, frames_jpg_path, collage_path)
 
-    # vp.PlayVideo(summary_video_audio_path)
+    vp.PlayVideo(summary_video_audio_path)
 
 if __name__=="__main__":
     main()

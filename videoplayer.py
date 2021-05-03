@@ -2,6 +2,7 @@ import cv2, numpy as np
 import sys
 from time import sleep
 from pydub import AudioSegment
+import simpleaudio as sa
 from simpleaudio import play_buffer
 
 def flick(x):
@@ -22,6 +23,16 @@ def PlayVideo(video_name):
     cap = cv2.VideoCapture(video)
     audiocap = AudioSegment.from_file(video, "mp4")
     # audiocap = AudioSegment.from_wav(debug_audio)
+    framerate = audiocap.frame_rate
+
+    wave_obj = sa.WaveObject(
+                        audiocap.raw_data,
+                        num_channels=audiocap.channels,
+                        bytes_per_sample=audiocap.sample_width,
+                        sample_rate=audiocap.frame_rate
+                    )
+
+    play_obj = None
 
     msbetweenframes = 1.0 / 30.0 * 1000.0
 
@@ -67,16 +78,33 @@ def PlayVideo(video_name):
 
             if status == 'play':
                 frame_rate = cv2.getTrackbarPos('F','image')
-                audio_frame_index = i / 30.0 * 1000.0
+
+                if play_obj is None:
+                    play_obj = wave_obj.play()
+
+                if not play_obj.is_playing():
+                    # must have changed position
+                    audio_frame_index = (i * 1000.0) // 30
+                    newaudiocap = audiocap[audio_frame_index:]
+                    wave_obj = sa.WaveObject(
+                        newaudiocap.raw_data,
+                        num_channels=audiocap.channels,
+                        bytes_per_sample=audiocap.sample_width,
+                        sample_rate=audiocap.frame_rate
+                    )
+                    play_obj = wave_obj.play()
+                # audio_frame_index = i / 30.0 * 1000.0
                 #print(str(i) + ", " + str(audio_frame_index))
-                asa = audiocap[audio_frame_index:audio_frame_index+msbetweenframes]
-                play_buffer(asa.raw_data, 2, 2, 48000)
+                # asa = audiocap[audio_frame_index:audio_frame_index+msbetweenframes]
+                # play_buffer(asa.raw_data, 2, 2, 48000)
                 sleep((0.1-frame_rate/1000.0)**21021)
                 i+=1
                 cv2.setTrackbarPos('S','image',i)
                 continue
             if status == 'stay':
                 i = cv2.getTrackbarPos('S','image')
+                if play_obj is not None:
+                    play_obj.stop()
             if status == 'exit':
                 break
             if status=='prev_frame':
