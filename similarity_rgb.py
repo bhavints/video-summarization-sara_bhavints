@@ -2,6 +2,7 @@
 
 # python -m pip install -U scikit-image
 # (also Cython, numpy, scipi, matplotlib, networkx, pillow, imageio, tifffile, PyWavelets)
+# 
 from skimage import data, img_as_float
 from skimage.metrics import structural_similarity as ssim
 # from skimage.metrics import mean_squared_error
@@ -19,6 +20,10 @@ import wave
 import videoplayer as vp
 import sys
 import struct
+
+from pyAudioAnalysis import audioBasicIO
+from pyAudioAnalysis import ShortTermFeatures, MidTermFeatures
+import matplotlib.pyplot as plt
 
 im_shape = (320, 180)
 total_frames = -1
@@ -253,7 +258,42 @@ def SyncVideoWithAudio(old_video_name, video_name, audio_path):
     my_clip.close()
     final_clip.close()
     audio_background.close()
+
+def MakeAudioShots(audio_path):
+    feature = 1
+    [Fs, x] = audioBasicIO.read_audio_file(audio_path)
+    x = audioBasicIO.stereo_to_mono(x)
+    frame_size = (Fs // 30)
+    F, f_names = ShortTermFeatures.feature_extraction(x, Fs, frame_size, frame_size, deltas=False)
+    # plt.subplot(2,1,1); plt.plot(F[3,:]); plt.xlabel('Frame no'); plt.ylabel(f_names[3]) 
+    plt.subplot(2,1,2); plt.plot(F[feature,:]); plt.xlabel('Frame no'); plt.ylabel(f_names[feature]); plt.show()
+
+    astd = (np.std(F[feature,:]))
+    aave = (np.average(F[feature,:]))
+
+    which_shots = np.zeros(len(F[feature,:])).flatten()
+    print(which_shots.shape)
+
+    for i in range(len(F[feature,:])):
+        if (abs(F[feature,:][i]-aave) > astd * 4.5):
+            which_shots[i] = F[feature,:][i]
     
+    prev_val = 0.0
+    for i in range(len(which_shots)):
+        # print(which_shots[i])
+        vframe = i // 30
+        minutes = vframe % 60
+        min_str = str(minutes)
+        if (minutes < 10):
+            min_str = "0" + min_str
+        if (prev_val == 0.0 and which_shots[i] > 0.0):
+            print("[" + str(vframe // 60) + ":" + min_str + ", " + str(which_shots[i]) + ", ", end='')
+        if (prev_val > 0.0 and which_shots[i] == 0.0):
+            print(str(vframe // 60) + ":" + min_str + "]")
+
+        prev_val = which_shots[i]
+
+    return(which_shots)
 
 def main():
 
@@ -261,7 +301,7 @@ def main():
     # full_frame_path = "project_dataset/frames_rgb/soccer/"
 
     # audio path
-    audio_path = "project_dataset/audio/soccer.wav"
+    audio_path = "../project_files/project_dataset/audio/soccer.wav"
 
     # directory for summary frames
     summary_frame_path = "summary/soccer/frames/"
@@ -286,13 +326,13 @@ def main():
     # MakeSummaryFrames(full_frame_path,summary_frame_path,shot_change)
 
     # # make a video from the summary frame folder
-    FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path, new_summary_audio_path)
+    # FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path, new_summary_audio_path)
 
     #SyncVideoWithAudio(summary_video_path, summary_video_audio_path, new_summary_audio_path)
 
-    
+    MakeAudioShots(audio_path)
 
-    vp.PlayVideo(summary_video_audio_path)
+    # vp.PlayVideo(summary_video_audio_path)
 
     # obj = wave.open(audio_path, 'r')
     # print( "Number of channels",obj.getnchannels())
