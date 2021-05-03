@@ -201,7 +201,7 @@ def FindAudioShots(framechange_array, audio_path):
         for y in range(len(audioshotchange_list)):
             if audioshotchange_list[y][0] >= first_frame and audioshotchange_list[y][0] < last_frame:
                 audio_array[x] += audioshotchange_list[y][2]
-         
+        audio_array[x] /= (last_frame - first_frame)
 
     audio_array = preprocessing.minmax_scale(audio_array, feature_range=(0, 1))
     audio_array = [round(num, 3) for num in audio_array]
@@ -266,7 +266,7 @@ def SaveSummaryFrames(totalweight_array, summary_frame_path, frames_jpg_path):
         for z in range (start, end):
             shot_image = frames_jpg_path+'frame'+str(z)+'.jpg'
             img = cv2.imread(shot_image)
-            summary_image = summary_frame_path+numlist[count]+'.jpg'
+            summary_image = summary_frame_path+str(z)+'.jpg'
             # add shot number to frame
             cv2.putText(
                 img, #numpy image
@@ -280,14 +280,29 @@ def SaveSummaryFrames(totalweight_array, summary_frame_path, frames_jpg_path):
             count = count+1
 
 # Convert frames folder to video using OpenCV
-def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height):
+def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_path,new_audio_path):
     frame_array = []
+    audio_frames = []
+
+    audio_object = wave.open(audio_path, 'r')
+    framerate = audio_object.getframerate()
+
     files = [f for f in os.listdir(summary_frame_path) if isfile(join(summary_frame_path,f))]
     # sort the files
     # see python reference https://docs.python.org/3/howto/sorting.html
     files.sort()
     for i in range(len(files)):
         filename=summary_frame_path+files[i]
+        FrameNum = int(os.path.splitext(files[i])[0])
+        # Convert to audio frame
+        AudioFrameNum = (FrameNum // 30) * framerate
+        # print(AudioFrameNum)
+        NumFramesToRead = (framerate // 30)
+        # print(NumFramesToRead)
+        audio_object.setpos(AudioFrameNum)
+        NewAudioFrames = audio_object.readframes(NumFramesToRead)
+        audio_frames.append(NewAudioFrames)
+
         #reading each files
         img = cv2.imread(filename)
         # height, width, layers = img.shape
@@ -303,6 +318,18 @@ def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height):
         # writing to a image array
         out.write(frame_array[i])
     out.release()
+
+    # Write new audio file
+    sampleRate = framerate # hertz
+    duration = len(audio_frames) / framerate # seconds
+    obj = wave.open(new_audio_path,'w')
+    obj.setnchannels(2) # mono
+    obj.setsampwidth(2)
+    obj.setframerate(sampleRate)
+
+    for i in range(len(audio_frames)):
+        obj.writeframesraw(audio_frames[i])
+    obj.close()
 
 def MakeCollage(framechange_array, frames_jpg_path, collage_path):
     # creates a collage of the shots in a video, the collage shows shot # and frame #
@@ -342,6 +369,16 @@ def MakeCollage(framechange_array, frames_jpg_path, collage_path):
         im_v = cv2.vconcat([im_v, im_h])
     cv2.imwrite(collage_path, im_v)
 
+def SyncVideoWithAudio(old_video_name, video_name, audio_path):
+
+    my_clip = mpe.VideoFileClip(old_video_name)
+    audio_background = mpe.AudioFileClip(audio_path)
+    final_clip = my_clip.set_audio(audio_background)
+    final_clip.write_videofile(video_name,fps=30)
+
+    my_clip.close()
+    final_clip.close()
+    audio_background.close()
 
 def main():
 
@@ -354,9 +391,13 @@ def main():
     # audio to process
     audio_path = '../project_files/project_dataset/audio/'+video_name+'.wav'
 
+    # new audio path
+    new_audio_path = "../project_files/summary/" +video_name+ "/sound.wav"
+
     # directory for summary frames and summary video
     summary_frame_path = '../project_files/summary/'+video_name+'/frames/'
     summary_video_path = '../project_files/summary/'+video_name+'/summary.mp4'
+    summary_video_audio_path = '../project_files/summary/'+video_name+'/summary_with_audio.mp4'
     collage_path = '../project_files/summary/'+video_name+'/collage.jpg'
 
     # empty the summary folders and summary results
@@ -422,14 +463,18 @@ def main():
 
     # create summary video
     print('\nfrom the summary frames, creating a summary video')
-    FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180)
+    FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path, new_audio_path)
     print('the summary video is stored as '+summary_video_path)
+
+    # Adding audio to video
+    SyncVideoWithAudio(summary_video_path, summary_video_audio_path, new_audio_path)
+
 
     # optional - make a photo collage of the shots
     # print('\nbonus: photo collage of scenes saved as collage.jpg in the root folder')
     # MakeCollage(framechange_array, frames_jpg_path, collage_path)
 
-    # vp.PlayVideo(summary_video_path)
+    # vp.PlayVideo(summary_video_audio_path)
 
 if __name__=="__main__":
     main()
