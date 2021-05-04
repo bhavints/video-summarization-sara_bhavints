@@ -282,6 +282,9 @@ def SaveSummaryFrames(totalweight_array, summary_frame_path, frames_jpg_path):
             cv2.imwrite(summary_image,img)
             count = count+1
 
+def sort(lst):
+    return sorted(lst, key = str)
+
 # Convert frames folder to video using OpenCV
 def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_path,new_audio_path):
     frame_array = []
@@ -290,13 +293,13 @@ def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_
     audio_object = wave.open(audio_path, 'r')
     framerate = audio_object.getframerate()
 
-    files = [f for f in os.listdir(summary_frame_path) if isfile(join(summary_frame_path,f))]
+    files = [int(os.path.splitext(f)[0]) for f in os.listdir(summary_frame_path) if isfile(join(summary_frame_path,f))]
     # sort the files
     # see python reference https://docs.python.org/3/howto/sorting.html
     files.sort()
     for i in range(len(files)):
-        filename=summary_frame_path+files[i]
-        FrameNum = int(os.path.splitext(files[i])[0])
+        filename=summary_frame_path+str(files[i])+".jpg"
+        FrameNum = files[i]
         # Convert to audio frame
         # print(files[i])
         # print(FrameNum)

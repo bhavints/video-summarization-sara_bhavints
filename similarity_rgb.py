@@ -260,7 +260,7 @@ def SyncVideoWithAudio(old_video_name, video_name, audio_path):
     audio_background.close()
 
 def MakeAudioShots(audio_path):
-    feature = 1
+    feature = 2
     [Fs, x] = audioBasicIO.read_audio_file(audio_path)
     x = audioBasicIO.stereo_to_mono(x)
     frame_size = (Fs // 30)
@@ -275,7 +275,7 @@ def MakeAudioShots(audio_path):
     print(which_shots.shape)
 
     for i in range(len(F[feature,:])):
-        if (abs(F[feature,:][i]-aave) > astd * 4.5):
+        if (abs(F[feature,:][i]-aave) > astd * 4):
             which_shots[i] = F[feature,:][i]
     
     prev_val = 0.0
