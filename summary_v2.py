@@ -24,7 +24,7 @@ from skimage.metrics import structural_similarity as ssim
 from skimage import io
 from sklearn import preprocessing
 import videoplayer as vp
-
+from pathlib import Path
 from pyAudioAnalysis import audioBasicIO
 from pyAudioAnalysis import ShortTermFeatures, MidTermFeatures
 import matplotlib.pyplot as plt
@@ -392,7 +392,7 @@ def SyncVideoWithAudio(old_video_name, video_name, audio_path):
 def main():
 
     # name of the video to process
-    video_name = 'soccer'
+    video_name = 'steel'
 
     # jpg video frames to be analyzed - ordered frame0.jpg, frame1.jpg, etc.
     frames_jpg_path = '../project_files/project_dataset/frames/'+video_name+'/'
@@ -408,6 +408,9 @@ def main():
     summary_video_path = '../project_files/summary/'+video_name+'/summary.mp4'
     summary_video_audio_path = '../project_files/summary/'+video_name+'/summary_with_audio.mp4'
     collage_path = '../project_files/summary/'+video_name+'/collage.jpg'
+
+    # Make dir if it doesn't exist
+    Path(summary_frame_path).mkdir(parents=True, exist_ok=True)
 
     # empty the summary folders and summary results
     print ('\nremoving all previous summary files in summary/shot folders')
