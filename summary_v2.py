@@ -165,7 +165,7 @@ def FindPeople(framechange_array, frames_jpg_path):
     return(people_array)
 
 def FindAudioShots(framechange_array, audio_path):
-    feature = 1
+    features = [0, 1]
     [Fs, x] = audioBasicIO.read_audio_file(audio_path)
     x = audioBasicIO.stereo_to_mono(x)
     frame_size = (Fs // 30)
@@ -173,15 +173,19 @@ def FindAudioShots(framechange_array, audio_path):
     # plt.subplot(2,1,1); plt.plot(F[3,:]); plt.xlabel('Frame no'); plt.ylabel(f_names[3]) 
     # plt.subplot(2,1,2); plt.plot(F[feature,:]); plt.xlabel('Frame no'); plt.ylabel(f_names[feature]); plt.show()
 
-    astd = (np.std(F[feature,:]))
-    aave = (np.average(F[feature,:]))
+    astd = []
+    aave = []
+    for i in range(len(features)):
+        astd.append(np.std(F[features[i],:]))
+        aave.append(np.average(F[features[i],:]))
 
-    which_shots = np.zeros(len(F[feature,:])).flatten()
+    which_shots = np.zeros(len(F[features[0],:])).flatten()
     print(which_shots.shape)
 
-    for i in range(len(F[feature,:])):
-        if (abs(F[feature,:][i]-aave) > astd * 4.5):
-            which_shots[i] = F[feature,:][i]
+    for i in range(len(F[features[0],:])):
+        for j in range(len(features)):
+            if (abs(F[features[j],:][i]-aave[j]) > astd[j] * 4.5):
+                which_shots[i] += F[features[j],:][i]
     
     audioshotchange_list = []
 
@@ -392,7 +396,7 @@ def SyncVideoWithAudio(old_video_name, video_name, audio_path):
 def main():
 
     # name of the video to process
-    video_name = 'steel'
+    video_name = 'soccer_2'
 
     # jpg video frames to be analyzed - ordered frame0.jpg, frame1.jpg, etc.
     frames_jpg_path = '../project_files/project_dataset/frames/'+video_name+'/'
