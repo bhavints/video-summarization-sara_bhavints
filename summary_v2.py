@@ -404,76 +404,76 @@ def main():
     collage_path = '../project_files/summary/'+video_name+'/collage.jpg'
 
     # empty the summary folders and summary results
-    print ('\nremoving all previous summary files in summary/shot folders')
-    filesToRemove = [os.path.join(summary_frame_path,f) for f in os.listdir(summary_frame_path)]
-    for f in filesToRemove:
-        os.remove(f)
-    if os.path.exists(summary_video_path):
-        os.remove(summary_video_path)
-    if os.path.exists(collage_path):
-        os.remove(collage_path)
+    # print ('\nremoving all previous summary files in summary/shot folders')
+    # filesToRemove = [os.path.join(summary_frame_path,f) for f in os.listdir(summary_frame_path)]
+    # for f in filesToRemove:
+    #     os.remove(f)
+    # if os.path.exists(summary_video_path):
+    #     os.remove(summary_video_path)
+    # if os.path.exists(collage_path):
+    #     os.remove(collage_path)
 
-    # get ssi_array, the structured similarity between adjacent frames
-    print ('\nssi_array')
-    print ('the similarity between adjacent frames ... takes a long minute')
-    ssi_array = FrameSimilarity(frames_jpg_path)
-    print(str(ssi_array[0 : 50])+' ... more')
+    # # get ssi_array, the structured similarity between adjacent frames
+    # print ('\nssi_array')
+    # print ('the similarity between adjacent frames ... takes a long minute')
+    # ssi_array = FrameSimilarity(frames_jpg_path)
+    # print(str(ssi_array[0 : 50])+' ... more')
 
-    # get the framechange_array, which are the shot boundary frames
-    print ('\nframechange_array')
-    print ('these are the frames where the shot changed')
-    framechange_array = FrameChange(ssi_array)
-    print(str(framechange_array))
+    # # get the framechange_array, which are the shot boundary frames
+    # print ('\nframechange_array')
+    # print ('these are the frames where the shot changed')
+    # framechange_array = FrameChange(ssi_array)
+    # print(str(framechange_array))
 
-    # get the shot_array, showing the shot sequences start, end
-    print ('\nshot_array')
-    shot_array = ShotArray(framechange_array)
-    print (str(len(shot_array))+' shots in the video')
-    print(str(shot_array))
+    # # get the shot_array, showing the shot sequences start, end
+    # print ('\nshot_array')
+    # shot_array = ShotArray(framechange_array)
+    # print (str(len(shot_array))+' shots in the video')
+    # print(str(shot_array))
 
-    # get the audio array
-    print('\naudio_array')
-    audio_array = FindAudioShots(framechange_array, audio_path)
-    print('there are '+str(len(audio_array))+' audio weights')
-    print(str(audio_array))
+    # # get the audio array
+    # print('\naudio_array')
+    # audio_array = FindAudioShots(framechange_array, audio_path)
+    # print('there are '+str(len(audio_array))+' audio weights')
+    # print(str(audio_array))
 
-    # get action_array, shows the average action weight for each shot
-    print ('\naction_array')
-    action_array = FindAction(framechange_array, ssi_array)
-    print(str(len(action_array))+' action weights')
-    print(str(action_array))
+    # # get action_array, shows the average action weight for each shot
+    # print ('\naction_array')
+    # action_array = FindAction(framechange_array, ssi_array)
+    # print(str(len(action_array))+' action weights')
+    # print(str(action_array))
 
-    # get the face array
-    print('\nface_array')
-    face_array = FindFaces(framechange_array, frames_jpg_path)
-    print(str(len(face_array))+' face weights')
-    print(str(face_array))
+    # # get the face array
+    # print('\nface_array')
+    # face_array = FindFaces(framechange_array, frames_jpg_path)
+    # print(str(len(face_array))+' face weights')
+    # print(str(face_array))
 
-    # get the people array
-    print('\npeople_array')
-    people_array = FindPeople(framechange_array, frames_jpg_path)
-    print('there are '+str(len(people_array))+' people weights')
-    print(str(people_array))
+    # # get the people array
+    # print('\npeople_array')
+    # people_array = FindPeople(framechange_array, frames_jpg_path)
+    # print('there are '+str(len(people_array))+' people weights')
+    # print(str(people_array))
 
-    # total the weights
-    print('\ntotalweight_array')
-    print('[shot start, shot end, total weight]')
-    totalweight_array = TotalWeights(shot_array, action_array, face_array, people_array, audio_array)
-    print(str(totalweight_array))
+    # # total the weights
+    # print('\ntotalweight_array')
+    # print('[shot start, shot end, total weight]')
+    # totalweight_array = TotalWeights(shot_array, action_array, face_array, people_array, audio_array)
+    # print(str(totalweight_array))
 
-    # create summary frames in a folder
-    SaveSummaryFrames(totalweight_array,summary_frame_path, frames_jpg_path)
+    # # create summary frames in a folder
+    # SaveSummaryFrames(totalweight_array,summary_frame_path, frames_jpg_path)
 
-    # create summary video
-    print('\nfrom the summary frames, creating a summary video')
-    FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path, new_audio_path)
-    print('the summary video is stored as '+summary_video_path)
+    # # create summary video
+    # print('\nfrom the summary frames, creating a summary video')
+    # FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path, new_audio_path)
+    # print('the summary video is stored as '+summary_video_path)
 
-    # Adding audio to video
-    SyncVideoWithAudio(summary_video_path, summary_video_audio_path, new_audio_path)
+    # # Adding audio to video
+    # SyncVideoWithAudio(summary_video_path, summary_video_audio_path, new_audio_path)
 
-    # optional - make a photo collage of the shots
-    print('\nbonus: photo collage of scenes saved as collage.jpg in the root folder')
+    # # optional - make a photo collage of the shots
+    # print('\nbonus: photo collage of scenes saved as collage.jpg in the root folder')
     # MakeCollage(framechange_array, frames_jpg_path, collage_path)
 
     vp.PlayVideo(summary_video_audio_path)
