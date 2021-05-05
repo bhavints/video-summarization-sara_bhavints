@@ -260,23 +260,30 @@ def SyncVideoWithAudio(old_video_name, video_name, audio_path):
     audio_background.close()
 
 def MakeAudioShots(audio_path):
-    feature = 0
+    features = [1]
     [Fs, x] = audioBasicIO.read_audio_file(audio_path)
     x = audioBasicIO.stereo_to_mono(x)
     frame_size = (Fs // 30)
     F, f_names = ShortTermFeatures.feature_extraction(x, Fs, frame_size, frame_size, deltas=False)
     # plt.subplot(2,1,1); plt.plot(F[3,:]); plt.xlabel('Frame no'); plt.ylabel(f_names[3]) 
-    plt.subplot(2,1,2); plt.plot(F[feature,:]); plt.xlabel('Frame no'); plt.ylabel(f_names[feature]); plt.show()
+    # plt.subplot(2,1,2); plt.plot(F[feature,:]); plt.xlabel('Frame no'); plt.ylabel(f_names[feature]); plt.show()
 
-    astd = (np.std(F[feature,:]))
-    aave = (np.average(F[feature,:]))
+    astd = []
+    aave = []
 
-    which_shots = np.zeros(len(F[feature,:])).flatten()
+    
+    for i in range(len(features)):
+        F[features[i],:] = [float(i)/sum(F[features[i],:]) for i in F[features[i],:]]
+        astd.append(np.std(F[features[i],:]))
+        aave.append(np.average(F[features[i],:]))
+
+    which_shots = np.zeros(len(F[features[0],:])).flatten()
     print(which_shots.shape)
 
-    for i in range(len(F[feature,:])):
-        if (abs(F[feature,:][i]-aave) > astd * 4.5):
-            which_shots[i] = F[feature,:][i]
+    for i in range(len(F[features[0],:])):
+        for j in range(len(features)):
+            if (abs(F[features[j],:][i]-aave[j]) > astd[j] * 4.5):
+                which_shots[i] += F[features[j],:][i]
     
     prev_val = 0.0
     for i in range(len(which_shots)):

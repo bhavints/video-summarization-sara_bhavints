@@ -137,7 +137,12 @@ def PlayVideo(summary_frame_path, summary_audio_path):
     cv2.destroyWindow('image')
 
 if __name__=="__main__":
-    video_name = "soccer"
-    summary_frame_path = '../project_files/summary/'+video_name+'/frames/'
-    summary_audio_path = '../project_files/summary/'+video_name+'/sound.wav'
-    PlayVideo(summary_frame_path, summary_audio_path)
+    
+    video_names = ['soccer', 'concert', 'meridian']
+
+    for i in range(len(video_names)):
+        # name of the video to process
+        video_name = video_names[i]
+        summary_frame_path = '../project_files/summary/'+video_name+'/frames/'
+        summary_audio_path = '../project_files/summary/'+video_name+'/sound.wav'
+        PlayVideo(summary_frame_path, summary_audio_path)
