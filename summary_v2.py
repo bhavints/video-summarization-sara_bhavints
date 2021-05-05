@@ -61,7 +61,7 @@ def FrameSimilarity(frames_jpg_path, isCentered):
             crop_img_b = frame_b
         frame_a_bw = cv2.cvtColor(crop_img_a, cv2.COLOR_BGR2GRAY)
         frame_b_bw = cv2.cvtColor(crop_img_b, cv2.COLOR_BGR2GRAY)
-        ssim_ab = ssim(frame_a_bw, frame_b_bw, multichannel=False, gaussian_weights=True, sigma=1.5, use_sample_covariance=False, data_range=255)
+        ssim_ab = ssim(frame_a_bw, frame_b_bw)#, multichannel=False, gaussian_weights=True, sigma=1.5, use_sample_covariance=False, data_range=255)
         ssim_ab = round(ssim_ab, 3)
         ssi_array.append(ssim_ab)
     return (ssi_array)
@@ -77,35 +77,54 @@ def FrameChange(ssi_array, frames_jpg_path):
         ssim_ab = ssi_array[i]
         ssim_bc = ssi_array[i+1]
         ssim_cd = ssi_array[i+2]
-        # 0.6 is chosen because a 60% change in similarity works well for a shot change threshold
-        if (ssim_bc/ssim_ab < 0.6 and ssim_bc/ssim_cd < 0.6 and i-last_hit > 22):
-            # Before deciding, do another test
+
+        firstCheckPass = False
+
+        if (ssim_bc/ssim_ab < 0.6 or ssim_bc/ssim_cd < 0.6):
+            
             frame_a = cv2.imread(frames_jpg_path+'frame'+str(i+1)+'.jpg')
             frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+2)+'.jpg')
 
             hist1 = []
             color = ('b','g','r')
-            for i,col in enumerate(color):
-                histr = cv2.calcHist([frame_a],[i],None,[256],[0,256])
+            for j,col in enumerate(color):
+                histr = cv2.calcHist([frame_a],[j],None,[256],[0,256])
                 hist1.append(histr)
 
             hist2 = []
-            for i,col in enumerate(color):
-                histr = cv2.calcHist([frame_b],[i],None,[256],[0,256])
+            for j,col in enumerate(color):
+                histr = cv2.calcHist([frame_b],[j],None,[256],[0,256])
                 hist2.append(histr)
 
             hist1a = np.asarray(hist1)
             hist2a = np.asarray(hist2)
-            dist = cv2.compareHist(hist1a, hist2a, 0)
+            average_dist = 0
 
-            # frame_a_bw = cv2.cvtColor(frame_a, cv2.COLOR_BGR2YCrCb)[:, :, 0]
-            # frame_b_bw = cv2.cvtColor(frame_b, cv2.COLOR_BGR2YCrCb)[:, :, 0]
-            #mad = np.sum(np.abs(np.subtract(frame_a_bw, frame_b_bw)))/(frame_a_bw.shape[0])
-            #print("Frame " + str(i+2) + ", shape: " + str(frame_a_bw.shape) + ", mad: " + str(mad))
+            for j in range(3):
+                dist = cv2.compareHist(hist1a[j], hist2a[j], 0)
+                average_dist = average_dist + dist
 
-            if dist < 0.6:
-                framechange_array.append(i+2)
-                last_hit = i+2
+            average_dist = average_dist / 3.0
+
+            if (ssim_bc/ssim_ab < 0.6 and ssim_bc/ssim_cd < 0.6):
+                if average_dist < 0.95:
+                    firstCheckPass = True
+            else:
+                if average_dist < 0.4:
+                    firstCheckPass = True
+            
+        
+        # 0.6 is chosen because a 60% change in similarity works well for a shot change threshold
+        if (firstCheckPass and i-last_hit > 22):
+            # Before deciding, do another test
+            # # frame_a_bw = cv2.cvtColor(frame_a, cv2.COLOR_BGR2YCrCb)[:, :, 0]
+            # # frame_b_bw = cv2.cvtColor(frame_b, cv2.COLOR_BGR2YCrCb)[:, :, 0]
+            # #mad = np.sum(np.abs(np.subtract(frame_a_bw, frame_b_bw)))/(frame_a_bw.shape[0])
+            # #print("Frame " + str(i+2) + ", shape: " + str(frame_a_bw.shape) + ", mad: " + str(mad))
+
+            # if average_dist < 0.95:
+            framechange_array.append(i+2)
+            last_hit = i+2
 
         #print shot
         if(i+2 >= 10950 and i+2 <= 10960):
@@ -517,7 +536,7 @@ def SyncVideoWithAudio(old_video_name, video_name, audio_path):
 
 def main():
 
-    video_names = ['soccer', 'concert', 'meridian', 'steel', 'soccer_2', 'concert_2', 'superbowl_2']
+    video_names = ['soccer']
 
     for i in range(len(video_names)):
         # name of the video to process
