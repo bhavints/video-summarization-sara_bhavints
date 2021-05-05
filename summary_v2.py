@@ -504,6 +504,8 @@ def main():
         # video path
         video_path = '../project_files/project_dataset/'+video_name+'.mp4'
 
+        dataset_path =  '../project_files/project_dataset/'
+
         # audio to process
         audio_path = '../project_files/project_dataset/audio/'+video_name+'.wav'
 
@@ -550,13 +552,18 @@ def main():
 
         # FOR ML
 
-        # get the shot_array, showing the shot sequences start, end
+        # print ('\nremoving all previous scenes files in dataset folders')
+        # filesToRemove = [os.path.join(dataset_path,f) for f in os.listdir(dataset_path) if f.endswith('.txt')]
+        # for f in filesToRemove:
+        #     os.remove(f)
+
+        # # get the shot_array, showing the shot sequences start, end
         # print ('\nshot_array')
         # shot_array = ShotArrayDL(video_path)
         # print (str(len(shot_array))+' shots in the video')
         # print(str(shot_array))
 
-        # # get the framechange_array, which are the shot boundary frames
+        # get the framechange_array, which are the shot boundary frames
         # print ('\nframechange_array')
         # print ('these are the frames where the shot changed')
         # framechange_array = FrameChangeDL(shot_array)
