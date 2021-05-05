@@ -23,16 +23,19 @@ from skimage import data, img_as_float
 from skimage.metrics import structural_similarity as ssim
 from skimage import io
 from sklearn import preprocessing
-import videoplayer as vp
+import oldvideoplayer as vp
 from pathlib import Path
 from pyAudioAnalysis import audioBasicIO
 from pyAudioAnalysis import ShortTermFeatures, MidTermFeatures
 import matplotlib.pyplot as plt
 
+# FOR ML
+# from transnetv2 import TransNetV2
+
 from moviepy.editor import *
 import pygame
 
-def FrameSimilarity(frames_jpg_path):
+def FrameSimilarity(frames_jpg_path, isCentered):
     # calculates the "structured similarity index" between adjacent frames
     # ssim() looks at luminance, contrast and structure, it is a scikit-image function
     # we use ssim() for both (1) Shot Change detection, and (2) Action weight
@@ -48,11 +51,15 @@ def FrameSimilarity(frames_jpg_path):
         frame_a = cv2.imread(frames_jpg_path+'frame'+str(i)+'.jpg')
         frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+1)+'.jpg')
         # crop frame images to center-weight them
-        crop_img_a = frame_a[20:160, 50:270] #y1:y2 x1:x2 orginal is 320 w x 180 h
-        crop_img_b = frame_b[20:160, 50:270]
+        if isCentered:
+            crop_img_a = frame_a[20:160, 50:270] #y1:y2 x1:x2 orginal is 320 w x 180 h
+            crop_img_b = frame_b[20:160, 50:270]
+        else:
+            crop_img_a = frame_a
+            crop_img_b = frame_b
         frame_a_bw = cv2.cvtColor(crop_img_a, cv2.COLOR_BGR2GRAY)
         frame_b_bw = cv2.cvtColor(crop_img_b, cv2.COLOR_BGR2GRAY)
-        ssim_ab = ssim(frame_a_bw, frame_b_bw)
+        ssim_ab = ssim(frame_a_bw, frame_b_bw, multichannel=False, gaussian_weights=True, sigma=1.5, use_sample_covariance=False, data_range=255)
         ssim_ab = round(ssim_ab, 3)
         ssi_array.append(ssim_ab)
     return (ssi_array)
@@ -72,11 +79,57 @@ def FrameChange(ssi_array):
         if (ssim_bc/ssim_ab < 0.6 and ssim_bc/ssim_cd < 0.6 and i-last_hit > 22):
             framechange_array.append(i+2)
             last_hit = i+2
+
+        #print shot
+        if(i+2 >= 10950 and i+2 <= 10960):
+            print("frame", i+2)
+            print(ssim_ab)
+            print(ssim_bc)
+            print(ssim_cd)
+            print("--> ", ssim_bc/ssim_ab)
+            print("--> ", ssim_bc/ssim_cd)
+            
+
     # add the last frame to the array to the end if last frame is more than last shot change
     if num-1 > framechange_array[-1] + 4:
         framechange_array.append(num-1)
-
+    
     return (framechange_array)
+
+# FOR ML
+def FrameChangeDL(shot_array):
+    framechange_array = [0]
+    for i in range (1, len(shot_array)):
+        framechange_array.append(int(shot_array[i][0]))
+    
+    framechange_array.append(int(shot_array[len(shot_array)-1][1]) + 1)
+    return(framechange_array)
+
+# FOR ML
+def ShotArrayDL(video_path):
+
+    #model = TransNetV2()
+    #video_frames, single_frame_predictions, all_frame_predictions = model.predict_video(video_path)
+
+    #scenes = model.predictions_to_scenes(single_frame_predictions)
+
+    #scenes = scenes.tolist()
+
+    scenes = []
+
+    # text_file = open("soccer.mp4.scenes.txt", "r")
+
+    # for line in text_file.readlines():
+    #     scenes.append(line.split(' '))
+
+    # scenes = [[int(y) for y in x] for x in scenes]
+    # for i in range(len(scenes)):
+    #     start_frame = int(scenes[i][0])
+    #     end_frame = int(scenes[i][1])
+
+    #     scenes.append([start_frame, end_frame])
+
+    return(scenes)
 
 def ShotArray(framechange_array):
     # from where the frames change, create an array of the video shots
@@ -396,10 +449,13 @@ def SyncVideoWithAudio(old_video_name, video_name, audio_path):
 def main():
 
     # name of the video to process
-    video_name = 'soccer_2'
+    video_name = 'soccer'
 
     # jpg video frames to be analyzed - ordered frame0.jpg, frame1.jpg, etc.
     frames_jpg_path = '../project_files/project_dataset/frames/'+video_name+'/'
+
+    # video path
+    video_path = '../project_files/project_dataset/'+video_name+'.mp4'
 
     # audio to process
     audio_path = '../project_files/project_dataset/audio/'+video_name+'.wav'
@@ -429,13 +485,14 @@ def main():
     # get ssi_array, the structured similarity between adjacent frames
     print ('\nssi_array')
     print ('the similarity between adjacent frames ... takes a long minute')
-    ssi_array = FrameSimilarity(frames_jpg_path)
+    ssi_array = FrameSimilarity(frames_jpg_path, True)
     print(str(ssi_array[0 : 50])+' ... more')
 
     # get the framechange_array, which are the shot boundary frames
     print ('\nframechange_array')
     print ('these are the frames where the shot changed')
     framechange_array = FrameChange(ssi_array)
+    print (str(len(framechange_array))+' framechangess in the video')
     print(str(framechange_array))
 
     # get the shot_array, showing the shot sequences start, end
@@ -443,6 +500,21 @@ def main():
     shot_array = ShotArray(framechange_array)
     print (str(len(shot_array))+' shots in the video')
     print(str(shot_array))
+
+    # FOR ML
+
+    # get the shot_array, showing the shot sequences start, end
+    # print ('\nshot_array')
+    # shot_array = ShotArrayDL(video_path)
+    # print (str(len(shot_array))+' shots in the video')
+    # print(str(shot_array))
+
+    # # get the framechange_array, which are the shot boundary frames
+    # print ('\nframechange_array')
+    # print ('these are the frames where the shot changed')
+    # framechange_array = FrameChangeDL(shot_array)
+    # print (str(len(framechange_array))+' framechangess in the video')
+    # print(str(framechange_array))
 
     # get the audio array
     print('\naudio_array')
@@ -455,6 +527,9 @@ def main():
     action_array = FindAction(framechange_array, ssi_array)
     print(str(len(action_array))+' action weights')
     print(str(action_array))
+    
+    # FOR ML
+    #action_array = np.zeros(len(audio_array))
 
     # get the face array
     print('\nface_array')
@@ -489,7 +564,7 @@ def main():
     # print('\nbonus: photo collage of scenes saved as collage.jpg in the root folder')
     # MakeCollage(framechange_array, frames_jpg_path, collage_path)
 
-    vp.PlayVideo(summary_video_audio_path)
+    vp.PlayVideo(summary_video_path, new_audio_path)
 
 if __name__=="__main__":
     main()
