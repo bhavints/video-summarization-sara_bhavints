@@ -315,13 +315,13 @@ def TotalWeights(shot_array, action_array, face_array, people_array, audio_array
     # use numpy to add the weight arrays
     # for now a simple addition of action, face, people weights
     face_array_scaled = [element * 0.5 for element in face_array]
-    people_array_scaled = [element * 0.5 for element in people_array]
-    audio_array_scaled = [element * 0.5 for element in audio_array]
+    people_array_scaled = [element * 0.25 for element in people_array]
+    #audio_array_scaled = [element * 0.5 for element in audio_array]
     arr = []
     arr.append(action_array)
     arr.append(face_array_scaled)
     arr.append(people_array_scaled)
-    arr.append(audio_array_scaled)
+    arr.append(audio_array)
     np_arr = np.array(arr)
     np_weight = np_arr.sum(axis=0)
     total_weight = list(np.around(np.array(np_weight),3))
@@ -492,7 +492,7 @@ def SyncVideoWithAudio(old_video_name, video_name, audio_path):
 
 def main():
 
-    video_names = ['soccer', 'concert', 'meridian']
+    video_names = ['soccer', 'concert', 'meridian', 'steel', 'soccer_2', 'concert_2', 'superbowl_2']
 
     for i in range(len(video_names)):
         # name of the video to process
