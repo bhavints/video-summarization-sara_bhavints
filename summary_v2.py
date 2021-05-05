@@ -564,7 +564,7 @@ def main():
     # print('\nbonus: photo collage of scenes saved as collage.jpg in the root folder')
     # MakeCollage(framechange_array, frames_jpg_path, collage_path)
 
-    vp.PlayVideo(summary_video_path, new_audio_path)
+    vp.PlayVideo(summary_frame_path, new_audio_path)
 
 if __name__=="__main__":
     main()
