@@ -110,12 +110,12 @@ def FrameChangeDL(shot_array):
 # FOR ML
 def ShotArrayDL(video_path):
 
-    #model = TransNetV2()
-    #video_frames, single_frame_predictions, all_frame_predictions = model.predict_video(video_path)
+    # model = TransNetV2()
+    # video_frames, single_frame_predictions, all_frame_predictions = model.predict_video(video_path)
 
-    #scenes = model.predictions_to_scenes(single_frame_predictions)
+    # scenes = model.predictions_to_scenes(single_frame_predictions)
 
-    #scenes = scenes.tolist()
+    # scenes = scenes.tolist()
 
     scenes = []
 
@@ -150,7 +150,7 @@ def FindMotion(framechange_array, frames_jpg_path):
 
     numadj = len(files)-1
 
-    residual_metrics = []
+    residual_metrics = [0]
 
     for i in range (0, numadj):
         frame_a = cv2.imread(frames_jpg_path+'frame'+str(i)+'.jpg')
@@ -160,7 +160,7 @@ def FindMotion(framechange_array, frames_jpg_path):
 
         residual_metrics.append(residual_metric)
 
-    res_mets = np.asarray(resdiual_metrics)
+    res_mets = np.asarray(residual_metrics)
     raverage = np.average(res_mets)
     rstd = np.std(res_mets)
 
