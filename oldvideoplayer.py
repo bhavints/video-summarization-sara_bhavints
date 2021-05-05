@@ -115,7 +115,7 @@ def PlayVideo(summary_frame_path, summary_audio_path):
                 cv2.setTrackbarPos('S','image',i)
                 continue
             if status == 'stay':
-                i = cv2.getTrackbarPos('S','image')
+                # i = cv2.getTrackbarPos('S','image')
                 if play_obj is not None:
                     play_obj.stop()
             if status == 'exit':
@@ -128,6 +128,9 @@ def PlayVideo(summary_frame_path, summary_audio_path):
                 i+=1
                 cv2.setTrackbarPos('S','image',i)
                 status='stay'
+
+            while time.time() - new_time < 1.0/30.0:
+                pass
 
         except KeyError:
             print("Invalid Key was pressed")
