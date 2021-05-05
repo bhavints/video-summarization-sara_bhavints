@@ -53,7 +53,7 @@ def FrameSimilarity(frames_jpg_path, isCentered):
         frame_a = cv2.imread(frames_jpg_path+'frame'+str(i)+'.jpg')
         frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+1)+'.jpg')
         # crop frame images to center-weight them
-        if isCentered:
+        if isCentered is True:
             crop_img_a = frame_a[20:160, 50:270] #y1:y2 x1:x2 orginal is 320 w x 180 h
             crop_img_b = frame_b[20:160, 50:270]
         else:
@@ -78,44 +78,52 @@ def FrameChange(ssi_array, frames_jpg_path):
         ssim_bc = ssi_array[i+1]
         ssim_cd = ssi_array[i+2]
 
+        if (i+2 > 10258 and i+2 < 10262):
+            print(i+2, sep=' ')
+            print(ssim_bc/ssim_ab)
+            print(ssim_bc/ssim_cd)
+
         firstCheckPass = False
+   
+        frame_a = cv2.imread(frames_jpg_path+'frame'+str(i+1)+'.jpg')
+        frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+2)+'.jpg')
 
-        if (ssim_bc/ssim_ab < 0.6 or ssim_bc/ssim_cd < 0.6):
-            
-            frame_a = cv2.imread(frames_jpg_path+'frame'+str(i+1)+'.jpg')
-            frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+2)+'.jpg')
+        hist1 = []
+        color = ('b','g','r')
+        for j,col in enumerate(color):
+            histr = cv2.calcHist([frame_a],[j],None,[256],[0,256])
+            hist1.append(histr)
 
-            hist1 = []
-            color = ('b','g','r')
-            for j,col in enumerate(color):
-                histr = cv2.calcHist([frame_a],[j],None,[256],[0,256])
-                hist1.append(histr)
+        hist2 = []
+        for j,col in enumerate(color):
+            histr = cv2.calcHist([frame_b],[j],None,[256],[0,256])
+            hist2.append(histr)
 
-            hist2 = []
-            for j,col in enumerate(color):
-                histr = cv2.calcHist([frame_b],[j],None,[256],[0,256])
-                hist2.append(histr)
+        hist1a = np.asarray(hist1)
+        hist2a = np.asarray(hist2)
 
-            hist1a = np.asarray(hist1)
-            hist2a = np.asarray(hist2)
-            average_dist = 0
+        average_dist = 0
 
-            for j in range(3):
-                dist = cv2.compareHist(hist1a[j], hist2a[j], 0)
-                average_dist = average_dist + dist
+        for j in range(3):
+            dist = cv2.compareHist(hist1a[j], hist2a[j], 0)
+            average_dist = average_dist + dist
 
-            average_dist = average_dist / 3.0
+        average_dist = average_dist / 3.0
 
-            if (ssim_bc/ssim_ab < 0.6 and ssim_bc/ssim_cd < 0.6):
-                if average_dist < 0.95:
-                    firstCheckPass = True
-            else:
-                if average_dist < 0.4:
-                    firstCheckPass = True
-            
+        if (i+2 > 10258 and i+2 < 10262):
+            print(average_dist)
+
+        if (ssim_bc/ssim_ab < 0.6 and ssim_bc/ssim_cd < 0.6):
+            if average_dist < 0.95:
+                firstCheckPass = True
+        elif (ssim_bc/ssim_ab < 0.6 or ssim_bc/ssim_cd < 0.6):
+            if average_dist < 0.4:
+                firstCheckPass = True
+        elif average_dist < 0.2:
+            firstCheckPass = True
         
         # 0.6 is chosen because a 60% change in similarity works well for a shot change threshold
-        if (firstCheckPass and i-last_hit > 22):
+        if (firstCheckPass is True and i-last_hit > 22):
             # Before deciding, do another test
             # # frame_a_bw = cv2.cvtColor(frame_a, cv2.COLOR_BGR2YCrCb)[:, :, 0]
             # # frame_b_bw = cv2.cvtColor(frame_b, cv2.COLOR_BGR2YCrCb)[:, :, 0]
@@ -127,13 +135,13 @@ def FrameChange(ssi_array, frames_jpg_path):
             last_hit = i+2
 
         #print shot
-        if(i+2 >= 10950 and i+2 <= 10960):
-            print("frame", i+2)
-            print(ssim_ab)
-            print(ssim_bc)
-            print(ssim_cd)
-            print("--> ", ssim_bc/ssim_ab)
-            print("--> ", ssim_bc/ssim_cd)
+        # if(i+2 >= 10950 and i+2 <= 10960):
+        #     print("frame", i+2)
+        #     print(ssim_ab)
+        #     print(ssim_bc)
+        #     print(ssim_cd)
+        #     print("--> ", ssim_bc/ssim_ab)
+        #     print("--> ", ssim_bc/ssim_cd)
             
 
     # add the last frame to the array to the end if last frame is more than last shot change
@@ -578,7 +586,7 @@ def main():
         # get ssi_array, the structured similarity between adjacent frames
         print ('\nssi_array')
         print ('the similarity between adjacent frames ... takes a long minute')
-        ssi_array = FrameSimilarity(frames_jpg_path, True)
+        ssi_array = FrameSimilarity(frames_jpg_path, False)
         print(str(ssi_array[0 : 50])+' ... more')
 
         # get the framechange_array, which are the shot boundary frames
