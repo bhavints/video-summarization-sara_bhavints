@@ -66,7 +66,7 @@ def FrameSimilarity(frames_jpg_path, isCentered):
         ssi_array.append(ssim_ab)
     return (ssi_array)
 
-def FrameChange(ssi_array):
+def FrameChange(ssi_array, frames_jpg_path):
     # this function finds the frames at the shot boundary
     # length of ssi_array, how many adjacent frames
     num = len(ssi_array)
@@ -79,8 +79,33 @@ def FrameChange(ssi_array):
         ssim_cd = ssi_array[i+2]
         # 0.6 is chosen because a 60% change in similarity works well for a shot change threshold
         if (ssim_bc/ssim_ab < 0.6 and ssim_bc/ssim_cd < 0.6 and i-last_hit > 22):
-            framechange_array.append(i+2)
-            last_hit = i+2
+            # Before deciding, do another test
+            frame_a = cv2.imread(frames_jpg_path+'frame'+str(i+1)+'.jpg')
+            frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+2)+'.jpg')
+
+            hist1 = []
+            color = ('b','g','r')
+            for i,col in enumerate(color):
+                histr = cv2.calcHist([frame_a],[i],None,[256],[0,256])
+                hist1.append(histr)
+
+            hist2 = []
+            for i,col in enumerate(color):
+                histr = cv2.calcHist([frame_b],[i],None,[256],[0,256])
+                hist2.append(histr)
+
+            hist1a = np.asarray(hist1)
+            hist2a = np.asarray(hist2)
+            dist = cv2.compareHist(hist1a, hist2a, 0)
+
+            # frame_a_bw = cv2.cvtColor(frame_a, cv2.COLOR_BGR2YCrCb)[:, :, 0]
+            # frame_b_bw = cv2.cvtColor(frame_b, cv2.COLOR_BGR2YCrCb)[:, :, 0]
+            #mad = np.sum(np.abs(np.subtract(frame_a_bw, frame_b_bw)))/(frame_a_bw.shape[0])
+            #print("Frame " + str(i+2) + ", shape: " + str(frame_a_bw.shape) + ", mad: " + str(mad))
+
+            if dist < 0.6:
+                framechange_array.append(i+2)
+                last_hit = i+2
 
         #print shot
         if(i+2 >= 10950 and i+2 <= 10960):
@@ -180,7 +205,7 @@ def FindMotion(framechange_array, frames_jpg_path):
         action_array.append(resdiual_average)
     # in the action array, a smaller value means more action (less similarity within shot frames)
     # return a normalized weighted array, value 0 to 1
-    action_array_normalized = preprocessing.minmax_scale(action_array, feature_range=(0, 1))
+    action_array_normalized = preprocessing.minmax_scale(action_array, feature_range=(0, 2))
     action_array = [round(num, 3) for num in action_array_normalized]
     return(action_array)
 
@@ -307,14 +332,14 @@ def FindAudioShots(framechange_array, audio_path):
                 audio_array[x] += audioshotchange_list[y][2]
         audio_array[x] /= (last_frame - first_frame)
 
-    audio_array = preprocessing.minmax_scale(audio_array, feature_range=(0, 1))
+    audio_array = preprocessing.minmax_scale(audio_array, feature_range=(0, 2))
     audio_array = [round(num, 3) for num in audio_array]
     return(audio_array)
 
 def TotalWeights(shot_array, action_array, face_array, people_array, audio_array):
     # use numpy to add the weight arrays
     # for now a simple addition of action, face, people weights
-    face_array_scaled = [element * 0.5 for element in face_array]
+    face_array_scaled = [element * 0.25 for element in face_array]
     people_array_scaled = [element * 0.25 for element in people_array]
     #audio_array_scaled = [element * 0.5 for element in audio_array]
     arr = []
@@ -540,7 +565,7 @@ def main():
         # get the framechange_array, which are the shot boundary frames
         print ('\nframechange_array')
         print ('these are the frames where the shot changed')
-        framechange_array = FrameChange(ssi_array)
+        framechange_array = FrameChange(ssi_array, frames_jpg_path)
         print (str(len(framechange_array))+' framechangess in the video')
         print(str(framechange_array))
 
