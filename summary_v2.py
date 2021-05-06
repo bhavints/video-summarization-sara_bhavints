@@ -441,7 +441,7 @@ def FindAudioShots(framechange_array, audio_path):
 
     for i in range(len(F[features[0],:])):
         for j in range(len(features)):
-            if (abs(F[features[j],:][i]-aave[j]) > astd[j] * 4.5):
+            if (abs(F[features[j],:][i]-aave[j]) > astd[j] * 3.5):
                 which_shots[i] += F[features[j],:][i]
     
     audioshotchange_list = []
@@ -474,10 +474,10 @@ def FindAudioShots(framechange_array, audio_path):
 def TotalWeights(shot_array, action_array, face_array, people_array, audio_array):
     # use numpy to add the weight arrays
     # for now a simple addition of action, face, people weights
-    face_array_scaled = [element * 0.8 for element in face_array]
-    people_array_scaled = [element * 0.8 for element in people_array]
+    face_array_scaled = [element * 0.5 for element in face_array]
+    people_array_scaled = [element * 0.3 for element in people_array]
     audio_array_scaled = [element * 0.6 for element in audio_array]
-    action_array_scaled = [element * 0.5 for element in action_array]
+    action_array_scaled = [element * 0.6 for element in action_array]
     arr = []
     arr.append(action_array_scaled)
     arr.append(face_array_scaled)
@@ -529,7 +529,7 @@ def SaveSummaryFrames(totalweight_array, summary_frame_path, frames_jpg_path, ac
         if (frame_count < 2850):
             for z in range(len(totalweight_array)):
                 if (sorted_array[x][0] == totalweight_array[z][0] or sorted_array[x][1] == totalweight_array[z][1]):
-                    print("Action: ", 1.5 * action_array[z], ", Face: ", 0.8 * face_array[z], ", People: ", 0.8 * people_array[z], ", Audio: ", 0.6 * audio_array[z])
+                    print("Action: ", 0.6 * action_array[z], ", Face: ", 0.5 * face_array[z], ", People: ", 0.3 * people_array[z], ", Audio: ", 0.6 * audio_array[z])
                     break
             summary_array.insert(x, sorted_array[x])
     # ordered array sort by shot start frame number
@@ -603,7 +603,7 @@ def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_
         if audioOnly is False:
             #reading each files
             # img = cv2.imread(filename)
-            img = all_frames[i]
+            img = all_frames[FrameNum]
             # height, width, layers = img.shape
             # size = (width,height)
             #inserting the frames into an image array
@@ -683,7 +683,7 @@ def SyncVideoWithAudio(old_video_name, video_name, audio_path):
 
 def main():
 
-    video_names = ['test_video', 'test_video_2']
+    video_names = ['test_video_1']
 
     for i in range(len(video_names)):
 
@@ -813,6 +813,8 @@ def main():
         print('there are '+str(len(people_array))+' people weights')
         print(str(people_array))
 
+        print("Time taken: ", time.time()-start_time, "s")
+
         # FOR ML
         # people_array = np.zeros(len(audio_array))
 
@@ -835,7 +837,7 @@ def main():
         FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path, new_audio_path, all_frames, False, False)
 
         # Adding audio to video
-        # SyncVideoWithAudio(summary_video_path, summary_video_audio_path, new_audio_path)
+        SyncVideoWithAudio(summary_video_path, summary_video_audio_path, new_audio_path)
 
         # # optional - make a photo collage of the shots
         print('\nbonus: photo collage of scenes saved as collage.jpg in the root folder')
