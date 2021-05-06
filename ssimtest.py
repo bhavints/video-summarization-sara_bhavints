@@ -10,7 +10,7 @@ video_name = 'soccer'
 frames_jpg_path = '../project_files/project_dataset/frames/'+video_name+'/'
 
 average_dists = []
-for i in range(9392, 9430, 1):
+for i in range(10256, 10270, 1):
     frame_a = cv2.imread(frames_jpg_path+'frame' + str(i) + '.jpg')
     frame_b = cv2.imread(frames_jpg_path+'frame' + str(i+1) + '.jpg')
     frame_c = cv2.imread(frames_jpg_path+'frame' + str(i+2) + '.jpg')

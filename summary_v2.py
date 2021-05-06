@@ -113,7 +113,7 @@ def FrameChange(ssi_array, frames_jpg_path):
 
         average_dist = average_dist / 3.0
 
-        # ssim_histo_val = (1.0 - ssim_bc/ssim_ab) + (1.0 - ssim_bc/ssim_cd) + (1.0 - average_dist)
+        ssim_histo_val = (1.0 - ssim_bc/ssim_ab) + (1.0 - ssim_bc/ssim_cd) + (1.0 - average_dist)
 
         if (ssim_bc/ssim_ab < 0.6 and ssim_bc/ssim_cd < 0.6):
             if average_dist < 0.95:
@@ -121,8 +121,8 @@ def FrameChange(ssi_array, frames_jpg_path):
         elif (ssim_bc/ssim_ab < 0.6 or ssim_bc/ssim_cd < 0.6):
             if average_dist < 0.4:
                 firstCheckPass = True
-        # elif ssim_histo_val < 0.3:
-        #     firstCheckPass = True
+        elif ssim_histo_val > 0.8:
+            firstCheckPass = True
         
         # 0.6 is chosen because a 60% change in similarity works well for a shot change threshold
         if (firstCheckPass is True and i-last_hit > 22):
