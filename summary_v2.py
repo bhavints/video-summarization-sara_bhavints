@@ -310,7 +310,7 @@ def FindMotion(framechange_array, frames_jpg_path, all_frames):
         # frame_a = cv2.imread(frames_jpg_path+'frame'+str(i)+'.jpg')
         # frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+motion_step_size)+'.jpg')
 
-        residual_metric = BlockMatching.main(frame_a, frame_b, outfile="OUTPUT", saveOutput=False, blockSize = 32)
+        residual_metric = BlockMatching.main(frame_a, frame_b, outfile="OUTPUT", saveOutput=False, blockSize = 64)
 
         residual_metrics.append(residual_metric)
 
@@ -808,13 +808,13 @@ def main():
         print("Time taken: ", time.time()-start_time, "s")
 
         # get the people array
-        # print('\npeople_array')
-        # people_array = FindPeople(framechange_array, frames_jpg_path)
-        # print('there are '+str(len(people_array))+' people weights')
-        # print(str(people_array))
+        print('\npeople_array')
+        people_array = FindPeople(framechange_array, frames_jpg_path)
+        print('there are '+str(len(people_array))+' people weights')
+        print(str(people_array))
 
         # FOR ML
-        people_array = np.zeros(len(audio_array))
+        # people_array = np.zeros(len(audio_array))
 
         # total the weights
         print('\ntotalweight_array')
