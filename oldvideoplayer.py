@@ -28,12 +28,12 @@ def PlayVideo(summary_frame_path, summary_audio_path):
     # audiocap = AudioSegment.from_wav(debug_audio)
 
     cv2.namedWindow('image')
-    cv2.moveWindow('image',250,150)
+    cv2.moveWindow('image',320,180)
     cv2.namedWindow('controls')
     cv2.moveWindow('controls',250,50)
 
     controls = np.zeros((50,750),np.uint8)
-    cv2.putText(controls, "F: Resume/Play, P: Pause, R: Rewind, N: Fast Forward, Esc: Exit", (40,20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255)
+    cv2.putText(controls, "F: Resume/Play, P: Pause, R: Rewind, N: Fast Forward, Esc: Exit", (120,30), cv2.FONT_HERSHEY_PLAIN, 1, 200)
 
     framerate = audiocap.frame_rate
 
@@ -52,12 +52,7 @@ def PlayVideo(summary_frame_path, summary_audio_path):
 
     i = 0
 
-    cv2.createTrackbar('S','image', 0,int(tots)-1, flick)
-    cv2.setTrackbarPos('S','image',0)
-
-    cv2.createTrackbar('F','image', 1, 100, flick)
     frame_rate = 30
-    cv2.setTrackbarPos('F','image',frame_rate)
 
     def process(im):
         return cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
@@ -122,11 +117,9 @@ def PlayVideo(summary_frame_path, summary_audio_path):
                 break
             if status=='prev_frame':
                 i-=1
-                cv2.setTrackbarPos('S','image',i)
                 status='stay'
             if status=='next_frame':
-                i+=1
-                cv2.setTrackbarPos('S','image',i)
+                i+=1 
                 status='stay'
 
             while time.time() - new_time < 1.0/30.0:

@@ -70,8 +70,8 @@ def FrameSimilarity(frames_jpg_path, isCentered, all_frames):
         frame_b = all_frames[i+1]
         # crop frame images to center-weight them
         if isCentered is True:
-            crop_img_a = frame_a[35:125, 80:240] #y1:y2 x1:x2 orginal is 320 w x 180 h
-            crop_img_b = frame_b[35:125, 80:240]
+            crop_img_a = frame_a[20:160, 50:270] #y1:y2 x1:x2 orginal is 320 w x 180 h
+            crop_img_b = frame_b[20:160, 50:270]
         else:
             crop_img_a = frame_a
             crop_img_b = frame_b
@@ -310,7 +310,7 @@ def FindMotion(framechange_array, frames_jpg_path, all_frames):
         # frame_a = cv2.imread(frames_jpg_path+'frame'+str(i)+'.jpg')
         # frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+motion_step_size)+'.jpg')
 
-        residual_metric = BlockMatching.main(frame_a, frame_b, outfile="OUTPUT", saveOutput=False, blockSize = 64)
+        residual_metric = BlockMatching.main(frame_a, frame_b, outfile="OUTPUT", saveOutput=False, blockSize = 48)
 
         residual_metrics.append(residual_metric)
 
@@ -809,7 +809,7 @@ def main():
 
         # get the people array
         print('\npeople_array')
-        people_array = FindPeople(framechange_array, frames_jpg_path)
+        people_array = FindPeople(framechange_array, frames_jpg_path, all_frames)
         print('there are '+str(len(people_array))+' people weights')
         print(str(people_array))
 
