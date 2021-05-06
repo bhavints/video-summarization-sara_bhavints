@@ -28,7 +28,7 @@ from pathlib import Path
 from pyAudioAnalysis import audioBasicIO
 from pyAudioAnalysis import ShortTermFeatures, MidTermFeatures
 import matplotlib.pyplot as plt
-
+import time
 import motionvectors as BlockMatching
 
 # FOR ML
@@ -239,30 +239,30 @@ def FrameChangeDL(shot_array):
     return(framechange_array)
 
 # FOR ML
-def ShotArrayDL(video_path):
+# def ShotArrayDL(video_path):
 
-    # model = TransNetV2()
-    # video_frames, single_frame_predictions, all_frame_predictions = model.predict_video(video_path)
+#     model = TransNetV2()
+#     video_frames, single_frame_predictions, all_frame_predictions = model.predict_video(video_path)
 
-    # scenes = model.predictions_to_scenes(single_frame_predictions)
+#     scenes = model.predictions_to_scenes(single_frame_predictions)
 
-    # scenes = scenes.tolist()
+#     scenes = scenes.tolist()
 
-    scenes = []
+#     # scenes = []
 
-    # text_file = open("soccer.mp4.scenes.txt", "r")
+#     # text_file = open("soccer.mp4.scenes.txt", "r")
 
-    # for line in text_file.readlines():
-    #     scenes.append(line.split(' '))
+#     # for line in text_file.readlines():
+#     #     scenes.append(line.split(' '))
 
-    # scenes = [[int(y) for y in x] for x in scenes]
-    # for i in range(len(scenes)):
-    #     start_frame = int(scenes[i][0])
-    #     end_frame = int(scenes[i][1])
+#     # scenes = [[int(y) for y in x] for x in scenes]
+#     # for i in range(len(scenes)):
+#     #     start_frame = int(scenes[i][0])
+#     #     end_frame = int(scenes[i][1])
 
-    #     scenes.append([start_frame, end_frame])
+#     #     scenes.append([start_frame, end_frame])
 
-    return(scenes)
+#     return(scenes)
 
 def ShotArray(framechange_array):
     # from where the frames change, create an array of the video shots
@@ -279,15 +279,17 @@ def FindMotion(framechange_array, frames_jpg_path):
     files = [f for f in os.listdir(frames_jpg_path) if isfile(join(frames_jpg_path,f))]
     files.sort()
 
+    motion_step_size = 2
+
     numadj = len(files)-1
 
     residual_metrics = [0]
 
-    for i in range (0, numadj):
+    for i in range (0, numadj-motion_step_size, motion_step_size):
         frame_a = cv2.imread(frames_jpg_path+'frame'+str(i)+'.jpg')
-        frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+1)+'.jpg')
+        frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+motion_step_size)+'.jpg')
 
-        residual_metric, residual_frame = BlockMatching.main(frame_a, frame_b, outfile="OUTPUT", saveOutput=False, blockSize = 32)
+        residual_metric = BlockMatching.main(frame_a, frame_b, outfile="OUTPUT", saveOutput=False, blockSize = 32)
 
         residual_metrics.append(residual_metric)
 
@@ -306,12 +308,18 @@ def FindMotion(framechange_array, frames_jpg_path):
         residual_total = 0
         resdiual_average = 0
         for y in range (framechange_array[x], framechange_array[x+1]-1):
-            residual_total = residual_total + residual_metrics[y]
+            index_to_use = y // motion_step_size
+            if y < ((framechange_array[x+1]-1-framechange_array[x])/2.0):
+                temp = y % motion_step_size
+                index_to_use = index_to_use + (motion_step_size - temp)
+            if index_to_use > len(residual_metrics):
+                index_to_use = len(residual_metrics) - 1
+            residual_total = residual_total + residual_metrics[index_to_use]
         resdiual_average = residual_total / frames_in_shot
         action_array.append(resdiual_average)
     # in the action array, a smaller value means more action (less similarity within shot frames)
     # return a normalized weighted array, value 0 to 1
-    action_array_normalized = preprocessing.minmax_scale(action_array, feature_range=(0, 2))
+    action_array_normalized = preprocessing.minmax_scale(action_array, feature_range=(0, 1))
     action_array = [round(num, 3) for num in action_array_normalized]
     return(action_array)
 
@@ -393,7 +401,7 @@ def FindPeople(framechange_array, frames_jpg_path):
     return(people_array)
 
 def FindAudioShots(framechange_array, audio_path):
-    features = [0, 1]
+    features = [1]
     [Fs, x] = audioBasicIO.read_audio_file(audio_path)
     x = audioBasicIO.stereo_to_mono(x)
     frame_size = (Fs // 30)
@@ -443,14 +451,15 @@ def FindAudioShots(framechange_array, audio_path):
 def TotalWeights(shot_array, action_array, face_array, people_array, audio_array):
     # use numpy to add the weight arrays
     # for now a simple addition of action, face, people weights
-    face_array_scaled = [element * 0.35 for element in face_array]
-    people_array_scaled = [element * 0.35 for element in people_array]
-    audio_array_scaled = [element * 0.7 for element in audio_array]
+    face_array_scaled = [element * 0.8 for element in face_array]
+    people_array_scaled = [element * 0.8 for element in people_array]
+    audio_array_scaled = [element * 0.6 for element in audio_array]
+    action_array_scaled = [element * 1.5 for element in action_array]
     arr = []
-    arr.append(action_array)
+    arr.append(action_array_scaled)
     arr.append(face_array_scaled)
     arr.append(people_array_scaled)
-    arr.append(audio_array)
+    arr.append(audio_array_scaled)
     np_arr = np.array(arr)
     np_weight = np_arr.sum(axis=0)
     total_weight = list(np.around(np.array(np_weight),3))
@@ -461,7 +470,7 @@ def TotalWeights(shot_array, action_array, face_array, people_array, audio_array
     # returns a multi-level weighted array [shot start, shot end, total weight]
     return(totalweight_array)
 
-def SaveSummaryFrames(totalweight_array, summary_frame_path, frames_jpg_path):
+def SaveSummaryFrames(totalweight_array, summary_frame_path, frames_jpg_path, action_array, face_array, people_array, audio_array):
     # with weighted shots, save the summary frames into summary_frame_path
     # sort the array by weight descending, best shots first
     sorted_array = sorted(totalweight_array, key=lambda x: x[2], reverse=True)
@@ -480,8 +489,11 @@ def SaveSummaryFrames(totalweight_array, summary_frame_path, frames_jpg_path):
         num_frames = end_frame - start_frame
 
         if num_frames > 300:
-            sorted_array[x][1] = sorted_array[x][0] + 300
+            sorted_array[x][0] = sorted_array[x][1] - 300
             num_frames = 300
+
+        if (num_frames < 60):
+            continue
 
         if frame_count + num_frames >= 2850:
             num_frames = 2850 - frame_count
@@ -492,6 +504,10 @@ def SaveSummaryFrames(totalweight_array, summary_frame_path, frames_jpg_path):
         frame_count = frame_count + num_frames
         # stop if frame_count is 90 sec (90 sec * 30 fps = 2700)
         if (frame_count < 2850):
+            for z in range(len(totalweight_array)):
+                if (sorted_array[x][0] == totalweight_array[z][0] or sorted_array[x][1] == totalweight_array[z][1]):
+                    print("Action: ", 1.5 * action_array[z], ", Face: ", 0.8 * face_array[z], ", People: ", 0.8 * people_array[z], ", Audio: ", 0.6 * audio_array[z])
+                    break
             summary_array.insert(x, sorted_array[x])
     # ordered array sort by shot start frame number
     ordered_array = sorted(summary_array, key=lambda x: x[0])
@@ -527,20 +543,27 @@ def sort(lst):
     return sorted(lst, key = str)
 
 # Convert frames folder to video using OpenCV
-def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_path,new_audio_path):
+def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_path,new_audio_path,isML=False):
     frame_array = []
     audio_frames = []
 
     audio_object = wave.open(audio_path, 'r')
     framerate = audio_object.getframerate()
 
-    files = [int(os.path.splitext(f)[0]) for f in os.listdir(summary_frame_path) if isfile(join(summary_frame_path,f))]
+    if isML:
+        files = [int(os.path.splitext(f)[0].split("frame")[1]) for f in os.listdir(summary_frame_path) if isfile(join(summary_frame_path,f))]
+    else:
+        files = [int(os.path.splitext(f)[0]) for f in os.listdir(summary_frame_path) if isfile(join(summary_frame_path,f))]
     # sort the files
     # see python reference https://docs.python.org/3/howto/sorting.html
     files.sort()
     for i in range(len(files)):
-        filename=summary_frame_path+str(files[i])+".jpg"
+        if isML:
+            filename=summary_frame_path+"frame"+str(files[i])+".jpg"
+        else:
+            filename=summary_frame_path+str(files[i])+".jpg"
         FrameNum = files[i]
+
         # Convert to audio frame
         # print(files[i])
         # print(FrameNum)
@@ -635,28 +658,31 @@ def main():
     video_names = ['test_video', 'test_video_2']
 
     for i in range(len(video_names)):
+
+        start_time = time.time()
+
         # name of the video to process
         video_name = video_names[i]
 
         # jpg video frames to be analyzed - ordered frame0.jpg, frame1.jpg, etc.
-        frames_jpg_path = '../project_files/project_dataset/frames/'+video_name+'/'
+        frames_jpg_path = '../../project_files/project_dataset/frames/'+video_name+'/'
 
         # video path
-        video_path = '../project_files/project_dataset/'+video_name+'.mp4'
+        video_path = '../../project_files/project_dataset/'+video_name+'.mp4'
 
-        dataset_path =  '../project_files/project_dataset/'
+        dataset_path =  '../../project_files/project_dataset/'
 
         # audio to process
-        audio_path = '../project_files/project_dataset/audio/'+video_name+'.wav'
+        audio_path = '../../project_files/project_dataset/audio/'+video_name+'.wav'
 
         # new audio path
-        new_audio_path = "../project_files/summary/" +video_name+ "/sound.wav"
+        new_audio_path = "../../project_files/summary/" +video_name+ "/sound.wav"
 
         # directory for summary frames and summary video
-        summary_frame_path = '../project_files/summary/'+video_name+'/frames/'
-        summary_video_path = '../project_files/summary/'+video_name+'/summary.mp4'
-        summary_video_audio_path = '../project_files/summary/'+video_name+'/summary_with_audio.mp4'
-        collage_path = '../project_files/summary/'+video_name+'/collage.jpg'
+        summary_frame_path = '../../project_files/summary/'+video_name+'/frames/'
+        summary_video_path = '../../project_files/summary/'+video_name+'/summary.mp4'
+        summary_video_audio_path = '../../project_files/summary/'+video_name+'/summary_with_audio.mp4'
+        collage_path = '../../project_files/summary/'+video_name+'/collage.jpg'
 
         # Make dir if it doesn't exist
         Path(summary_frame_path).mkdir(parents=True, exist_ok=True)
@@ -692,18 +718,20 @@ def main():
 
         # FOR ML
 
+        # FramesToVideo(frames_jpg_path,video_path,30,320,180,audio_path,new_audio_path, True)
+
         # print ('\nremoving all previous scenes files in dataset folders')
         # filesToRemove = [os.path.join(dataset_path,f) for f in os.listdir(dataset_path) if f.endswith('.txt')]
         # for f in filesToRemove:
         #     os.remove(f)
 
-        # # get the shot_array, showing the shot sequences start, end
+        # get the shot_array, showing the shot sequences start, end
         # print ('\nshot_array')
         # shot_array = ShotArrayDL(video_path)
         # print (str(len(shot_array))+' shots in the video')
         # print(str(shot_array))
 
-        # get the framechange_array, which are the shot boundary frames
+        # # get the framechange_array, which are the shot boundary frames
         # print ('\nframechange_array')
         # print ('these are the frames where the shot changed')
         # framechange_array = FrameChangeDL(shot_array)
@@ -729,7 +757,7 @@ def main():
         # print(str(action_array))
         
         # FOR ML
-        #action_array = np.zeros(len(audio_array))
+        # action_array = np.zeros(len(audio_array))
 
         # get the face array
         print('\nface_array')
@@ -743,6 +771,9 @@ def main():
         print('there are '+str(len(people_array))+' people weights')
         print(str(people_array))
 
+        # FOR ML
+        # people_array = np.zeros(len(audio_array))
+
         # total the weights
         print('\ntotalweight_array')
         print('[shot start, shot end, total weight]')
@@ -750,7 +781,9 @@ def main():
         print(str(totalweight_array))
 
         # create summary frames in a folder
-        SaveSummaryFrames(totalweight_array,summary_frame_path, frames_jpg_path)
+        SaveSummaryFrames(totalweight_array,summary_frame_path, frames_jpg_path, action_array, face_array, people_array, audio_array)
+
+        print("Time taken: ", time.time()-start_time, "s")
 
         # create summary video
         print('\nfrom the summary frames, creating a summary video')
@@ -763,6 +796,8 @@ def main():
         # # optional - make a photo collage of the shots
         print('\nbonus: photo collage of scenes saved as collage.jpg in the root folder')
         MakeCollage(framechange_array, frames_jpg_path, collage_path)
+
+       
 
 if __name__=="__main__":
     main()
