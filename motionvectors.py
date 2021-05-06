@@ -1,5 +1,3 @@
-# Code to Perform Block Matching
-
 import numpy as np
 import cv2
 import random
