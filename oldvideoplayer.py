@@ -59,6 +59,8 @@ def PlayVideo(summary_frame_path, summary_audio_path):
 
     status = 'stay'
 
+    last_audio_sync = 0
+
     while True:
         new_time = time.time()
         cv2.imshow("controls",controls)
@@ -68,12 +70,12 @@ def PlayVideo(summary_frame_path, summary_audio_path):
             # cap.set(cv2.CAP_PROP_POS_FRAMES, i)
             im = videobuffer[i]
 
-            r = 750.0 / im.shape[1]
-            dim = (750, int(im.shape[0] * r))
-            im = cv2.resize(im, dim, interpolation = cv2.INTER_AREA)
-            if im.shape[0]>600:
-                im = cv2.resize(im, (500,500))
-                controls = cv2.resize(controls, (im.shape[1],25))
+            # r = 750.0 / im.shape[1]
+            # dim = (750, int(im.shape[0] * r))
+            # im = cv2.resize(im, dim, interpolation = cv2.INTER_AREA)
+            # if im.shape[0]>600:
+            #     im = cv2.resize(im, (500,500))
+            #     controls = cv2.resize(controls, (im.shape[1],25))
             #cv2.putText(im, status, )
             cv2.imshow('image', im)
             status = { ord('p'):'stay', ord('P'):'stay',
@@ -89,7 +91,9 @@ def PlayVideo(summary_frame_path, summary_audio_path):
                 if play_obj is None:
                     play_obj = wave_obj.play()
 
-                if not play_obj.is_playing():
+                if not play_obj.is_playing() or last_audio_sync > 30:
+                    if play_obj is not None:
+                        play_obj.stop()
                     # must have changed position
                     audio_frame_index = (i * 1000.0) // 30
                     newaudiocap = audiocap[audio_frame_index:]
@@ -100,10 +104,12 @@ def PlayVideo(summary_frame_path, summary_audio_path):
                         sample_rate=audiocap.frame_rate
                     )
                     play_obj = wave_obj.play()
+                    last_audio_sync = 0
                 # audio_frame_index = i / 30.0 * 1000.0
                 #print(str(i) + ", " + str(audio_frame_index))
                 # asa = audiocap[audio_frame_index:audio_frame_index+msbetweenframes]
                 # play_buffer(asa.raw_data, 2, 2, 48000)
+                last_audio_sync+=1
                 i+=1
                 while time.time() - new_time < 1.0/30.0:
                     pass
@@ -131,7 +137,7 @@ def PlayVideo(summary_frame_path, summary_audio_path):
 
 if __name__=="__main__":
     
-    video_names = ['test_video', 'test_video_2']
+    video_names = ['test_video']
 
     for i in range(len(video_names)):
         # name of the video to process

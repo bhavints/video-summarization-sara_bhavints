@@ -683,7 +683,7 @@ def SyncVideoWithAudio(old_video_name, video_name, audio_path):
 
 def main():
 
-    video_names = ['test_video_1']
+    video_names = ['test_video']
 
     for i in range(len(video_names)):
 
