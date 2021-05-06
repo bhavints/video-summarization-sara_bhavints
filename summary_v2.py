@@ -436,7 +436,7 @@ def FindAudioShots(framechange_array, audio_path):
                 audio_array[x] += audioshotchange_list[y][2]
         audio_array[x] /= (last_frame - first_frame)
 
-    audio_array = preprocessing.minmax_scale(audio_array, feature_range=(0, 2))
+    audio_array = preprocessing.minmax_scale(audio_array, feature_range=(0, 1))
     audio_array = [round(num, 3) for num in audio_array]
     return(audio_array)
 
@@ -478,9 +478,20 @@ def SaveSummaryFrames(totalweight_array, summary_frame_path, frames_jpg_path):
         start_frame = sorted_array[x][0]
         end_frame = sorted_array[x][1]
         num_frames = end_frame - start_frame
+
+        if num_frames > 300:
+            sorted_array[x][1] = sorted_array[x][0] + 300
+            num_frames = 300
+
+        if frame_count + num_frames >= 2850:
+            num_frames = 2850 - frame_count
+            if (num_frames < 60):
+                break
+            sorted_array[x][1] = sorted_array[x][0] + num_frames
+
         frame_count = frame_count + num_frames
         # stop if frame_count is 90 sec (90 sec * 30 fps = 2700)
-        if (frame_count < 2700):
+        if (frame_count < 2850):
             summary_array.insert(x, sorted_array[x])
     # ordered array sort by shot start frame number
     ordered_array = sorted(summary_array, key=lambda x: x[0])
