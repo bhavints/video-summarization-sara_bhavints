@@ -74,19 +74,22 @@ def FrameChange(ssi_array, frames_jpg_path):
     framechange_array = [0]
     last_hit = 0
     for i in range (0, num-3):
+    
         ssim_ab = ssi_array[i]
         ssim_bc = ssi_array[i+1]
         ssim_cd = ssi_array[i+2]
 
-        if (i+2 > 10258 and i+2 < 10262):
-            print(i+2, sep=' ')
-            print(ssim_bc/ssim_ab)
-            print(ssim_bc/ssim_cd)
-
         firstCheckPass = False
    
-        frame_a = cv2.imread(frames_jpg_path+'frame'+str(i+1)+'.jpg')
-        frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+2)+'.jpg')
+        frame_a_index = i - 3
+        if (frame_a_index < 0): 
+            frame_a_index = 0
+
+        frame_b_index = i + 7
+        if (frame_b_index >= num-3):
+            frame_b_index = num-3-1
+        frame_a = cv2.imread(frames_jpg_path+'frame'+str(frame_a_index)+'.jpg')
+        frame_b = cv2.imread(frames_jpg_path+'frame'+str(frame_b_index)+'.jpg')
 
         hist1 = []
         color = ('b','g','r')
@@ -110,39 +113,83 @@ def FrameChange(ssi_array, frames_jpg_path):
 
         average_dist = average_dist / 3.0
 
-        if (i+2 > 10258 and i+2 < 10262):
-            print(average_dist)
-
         if (ssim_bc/ssim_ab < 0.6 and ssim_bc/ssim_cd < 0.6):
             if average_dist < 0.95:
                 firstCheckPass = True
         elif (ssim_bc/ssim_ab < 0.6 or ssim_bc/ssim_cd < 0.6):
             if average_dist < 0.4:
                 firstCheckPass = True
-        elif average_dist < 0.2:
-            firstCheckPass = True
+        # elif average_dist < 0.3:
+        #     firstCheckPass = True
         
         # 0.6 is chosen because a 60% change in similarity works well for a shot change threshold
         if (firstCheckPass is True and i-last_hit > 22):
-            # Before deciding, do another test
-            # # frame_a_bw = cv2.cvtColor(frame_a, cv2.COLOR_BGR2YCrCb)[:, :, 0]
-            # # frame_b_bw = cv2.cvtColor(frame_b, cv2.COLOR_BGR2YCrCb)[:, :, 0]
-            # #mad = np.sum(np.abs(np.subtract(frame_a_bw, frame_b_bw)))/(frame_a_bw.shape[0])
-            # #print("Frame " + str(i+2) + ", shape: " + str(frame_a_bw.shape) + ", mad: " + str(mad))
-
-            # if average_dist < 0.95:
             framechange_array.append(i+2)
             last_hit = i+2
 
-        #print shot
-        # if(i+2 >= 10950 and i+2 <= 10960):
-        #     print("frame", i+2)
-        #     print(ssim_ab)
-        #     print(ssim_bc)
-        #     print(ssim_cd)
-        #     print("--> ", ssim_bc/ssim_ab)
-        #     print("--> ", ssim_bc/ssim_cd)
-            
+
+    # USE FOR A 2ND PASS THROUGH SHOTS TO MAKE SURE THEY ARE CORRECT
+
+    new_frame_changes = []
+
+    last_hit = 0
+
+    # for x in range(len(framechange_array)-1):
+    #     shots_in_frame = framechange_array[x+1] - framechange_array[x] - 1
+
+    #     for k in range(0, shots_in_frame-10, 10):
+
+    #         i = framechange_array[x] + k
+    #         frame_a = cv2.imread(frames_jpg_path+'frame'+str(i)+'.jpg')
+    #         frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+10)+'.jpg')
+
+    #         frame_a_bw = cv2.cvtColor(frame_a, cv2.COLOR_BGR2GRAY)
+    #         frame_b_bw = cv2.cvtColor(frame_b, cv2.COLOR_BGR2GRAY)
+    #         average_dist = ssim(frame_a_bw, frame_b_bw)
+    #         #mad = np.sum(np.abs(np.subtract(frame_a_bw, frame_b_bw)))/(frame_a_bw.shape[0])
+
+    #         # hist1 = []
+    #         # color = ('b','g','r')
+    #         # for j,col in enumerate(color):
+    #         #     histr = cv2.calcHist([frame_a],[j],None,[256],[0,256])
+    #         #     hist1.append(histr)
+
+    #         # hist2 = []
+    #         # for j,col in enumerate(color):
+    #         #     histr = cv2.calcHist([frame_b],[j],None,[256],[0,256])
+    #         #     hist2.append(histr)
+
+    #         # hist1a = np.asarray(hist1)
+    #         # hist2a = np.asarray(hist2)
+
+    #         # average_dist = 0
+
+    #         # for j in range(3):
+    #         #     dist = cv2.compareHist(hist1a[j], hist2a[j], 0)
+    #         #     average_dist = average_dist + dist
+
+    #         # average_dist = average_dist / 3.0
+
+    #         # average_dist, residual_frame = BlockMatching.main(frames_jpg_path+'frame'+str(i)+'.jpg', frames_jpg_path+'frame'+str(i+10)+'.jpg')
+
+    #         # print(average_dist)
+
+    #         if (average_dist < 0.05 and i - last_hit > 50):
+    #             # Split up the frame here
+    #             last_hit = i
+    #             print(i)
+    #             new_frame_changes.append(i+5)
+
+
+    # framechange_array_copy = framechange_array.copy()
+
+    # for i in range(len(new_frame_changes)):
+    #     for k in range(len(framechange_array_copy)):
+    #         if (new_frame_changes[i] > framechange_array_copy[k]):
+    #             if k == len(framechange_array_copy) - 1 or (new_frame_changes[i] < framechange_array_copy[k+1]):
+    #                 framechange_array.insert(k + 1, new_frame_changes[i])
+    #                 break
+                
 
     # add the last frame to the array to the end if last frame is more than last shot change
     if num-1 > framechange_array[-1] + 4:
@@ -319,8 +366,6 @@ def FindAudioShots(framechange_array, audio_path):
     x = audioBasicIO.stereo_to_mono(x)
     frame_size = (Fs // 30)
     F, f_names = ShortTermFeatures.feature_extraction(x, Fs, frame_size, frame_size, deltas=False)
-    # plt.subplot(2,1,1); plt.plot(F[3,:]); plt.xlabel('Frame no'); plt.ylabel(f_names[3]) 
-    # plt.subplot(2,1,2); plt.plot(F[feature,:]); plt.xlabel('Frame no'); plt.ylabel(f_names[feature]); plt.show()
 
     astd = []
     aave = []
