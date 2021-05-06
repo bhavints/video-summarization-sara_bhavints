@@ -81,11 +81,11 @@ def FrameChange(ssi_array, frames_jpg_path):
 
         firstCheckPass = False
    
-        frame_a_index = i - 3
+        frame_a_index = i + 1
         if (frame_a_index < 0): 
             frame_a_index = 0
 
-        frame_b_index = i + 7
+        frame_b_index = i + 2
         if (frame_b_index >= num-3):
             frame_b_index = num-3-1
         frame_a = cv2.imread(frames_jpg_path+'frame'+str(frame_a_index)+'.jpg')
