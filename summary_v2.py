@@ -70,8 +70,8 @@ def FrameSimilarity(frames_jpg_path, isCentered, all_frames):
         frame_b = all_frames[i+1]
         # crop frame images to center-weight them
         if isCentered is True:
-            crop_img_a = frame_a[40:120, 80:240] #y1:y2 x1:x2 orginal is 320 w x 180 h
-            crop_img_b = frame_b[40:120, 80:240]
+            crop_img_a = frame_a[35:125, 80:240] #y1:y2 x1:x2 orginal is 320 w x 180 h
+            crop_img_b = frame_b[35:125, 80:240]
         else:
             crop_img_a = frame_a
             crop_img_b = frame_b
@@ -310,7 +310,7 @@ def FindMotion(framechange_array, frames_jpg_path, all_frames):
         # frame_a = cv2.imread(frames_jpg_path+'frame'+str(i)+'.jpg')
         # frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+motion_step_size)+'.jpg')
 
-        residual_metric = BlockMatching.main(frame_a, frame_b, outfile="OUTPUT", saveOutput=False, blockSize = 64)
+        residual_metric = BlockMatching.main(frame_a, frame_b, outfile="OUTPUT", saveOutput=False, blockSize = 32)
 
         residual_metrics.append(residual_metric)
 
@@ -830,7 +830,9 @@ def main():
         FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path, new_audio_path, all_frames, False, True)
         print('the summary video is stored as '+summary_video_path)
 
-        print("Time taken: ", time.time()-start_time, "s")
+        print("Final time taken: ", time.time()-start_time, "s")
+
+        FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path, new_audio_path, all_frames, False, False)
 
         # Adding audio to video
         # SyncVideoWithAudio(summary_video_path, summary_video_audio_path, new_audio_path)
