@@ -477,7 +477,7 @@ def TotalWeights(shot_array, action_array, face_array, people_array, audio_array
     face_array_scaled = [element * 0.8 for element in face_array]
     people_array_scaled = [element * 0.8 for element in people_array]
     audio_array_scaled = [element * 0.6 for element in audio_array]
-    action_array_scaled = [element * 1.5 for element in action_array]
+    action_array_scaled = [element * 0.5 for element in action_array]
     arr = []
     arr.append(action_array_scaled)
     arr.append(face_array_scaled)
