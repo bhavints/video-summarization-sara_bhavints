@@ -279,9 +279,9 @@ def FindMotion(framechange_array, frames_jpg_path):
     files = [f for f in os.listdir(frames_jpg_path) if isfile(join(frames_jpg_path,f))]
     files.sort()
 
-    motion_step_size = 2
+    motion_step_size = 1
 
-    numadj = len(files)-1
+    numadj = len(files)
 
     residual_metrics = [0]
 
@@ -297,9 +297,9 @@ def FindMotion(framechange_array, frames_jpg_path):
     raverage = np.average(res_mets)
     rstd = np.std(res_mets)
 
-    for i in range(len(res_mets)):
-        if res_mets[i] < (raverage + 2 * rstd):
-            residual_metrics[i] = 0.0
+    # for i in range(len(res_mets)):
+    #     if res_mets[i] < (raverage + 2 * rstd):
+    #         residual_metrics[i] = 0.0
 
     action_array = []
 
@@ -543,7 +543,7 @@ def sort(lst):
     return sorted(lst, key = str)
 
 # Convert frames folder to video using OpenCV
-def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_path,new_audio_path,isML=False):
+def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_path,new_audio_path,isML=False, audioOnly=False):
     frame_array = []
     audio_frames = []
 
@@ -576,21 +576,24 @@ def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_
         NewAudioFrames = audio_object.readframes(NumFramesToRead)
         audio_frames.append(NewAudioFrames)
 
-        #reading each files
-        img = cv2.imread(filename)
-        # height, width, layers = img.shape
-        # size = (width,height)
-        #inserting the frames into an image array
-        frame_array.append(img)
-    # define the parameters for creating the video
-    # .mp4 is a good choice for playing videos, works on OSX and Windows
-    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-    out = cv2.VideoWriter(pathOut, fourcc, fps, (frame_width,frame_height))
-    # create the video from frame array
-    for i in range(len(frame_array)):
-        # writing to a image array
-        out.write(frame_array[i])
-    out.release()
+        if audioOnly is False:
+            #reading each files
+            img = cv2.imread(filename)
+            # height, width, layers = img.shape
+            # size = (width,height)
+            #inserting the frames into an image array
+            frame_array.append(img)
+
+    if audioOnly is False:
+        # define the parameters for creating the video
+        # .mp4 is a good choice for playing videos, works on OSX and Windows
+        fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+        out = cv2.VideoWriter(pathOut, fourcc, fps, (frame_width,frame_height))
+        # create the video from frame array
+        for i in range(len(frame_array)):
+            # writing to a image array
+            out.write(frame_array[i])
+        out.release()
 
     # Write new audio file
     sampleRate = framerate # hertz
@@ -766,13 +769,13 @@ def main():
         print(str(face_array))
 
         # get the people array
-        print('\npeople_array')
-        people_array = FindPeople(framechange_array, frames_jpg_path)
-        print('there are '+str(len(people_array))+' people weights')
-        print(str(people_array))
+        # print('\npeople_array')
+        # people_array = FindPeople(framechange_array, frames_jpg_path)
+        # print('there are '+str(len(people_array))+' people weights')
+        # print(str(people_array))
 
         # FOR ML
-        # people_array = np.zeros(len(audio_array))
+        people_array = np.zeros(len(audio_array))
 
         # total the weights
         print('\ntotalweight_array')
@@ -783,12 +786,14 @@ def main():
         # create summary frames in a folder
         SaveSummaryFrames(totalweight_array,summary_frame_path, frames_jpg_path, action_array, face_array, people_array, audio_array)
 
-        print("Time taken: ", time.time()-start_time, "s")
+        
 
         # create summary video
         print('\nfrom the summary frames, creating a summary video')
-        FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path, new_audio_path)
+        FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path, new_audio_path, False, True)
         print('the summary video is stored as '+summary_video_path)
+
+        print("Time taken: ", time.time()-start_time, "s")
 
         # Adding audio to video
         SyncVideoWithAudio(summary_video_path, summary_video_audio_path, new_audio_path)

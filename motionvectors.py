@@ -42,14 +42,7 @@ def getAnchorSearchArea(x, y, anchor, blockSize, searchArea):
     return anchorSearch
 
 def getBlockZone(p, aSearch, tBlock, blockSize):
-    """
-    Retrieves the block searched in the anchor search area to be compared with the macroblock tBlock in the current frame
-    :param p: x,y coordinates of macroblock center from current frame
-    :param aSearch: anchor search area image
-    :param tBlock: macroblock from current frame
-    :param blockSize: size of macroblock in pixels
-    :return: macroblock from anchor
-    """
+
     px, py = p # coordinates of macroblock center
     px, py = px-int(blockSize/2), py-int(blockSize/2) # get top left corner of macroblock
     px, py = max(0,px), max(0,py) # ensure macroblock is within bounds
