@@ -143,6 +143,6 @@ if __name__=="__main__":
     for i in range(len(video_names)):
         # name of the video to process
         video_name = video_names[i]
-        summary_frame_path = '../project_files/summary/'+video_name+'/frames/'
-        summary_audio_path = '../project_files/summary/'+video_name+'/sound.wav'
+        summary_frame_path = '../../project_files/summary/'+video_name+'/frames/'
+        summary_audio_path = '../../project_files/summary/'+video_name+'/sound.wav'
         PlayVideo(summary_frame_path, summary_audio_path)

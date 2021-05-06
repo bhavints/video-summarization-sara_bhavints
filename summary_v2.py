@@ -37,7 +37,21 @@ import motionvectors as BlockMatching
 from moviepy.editor import *
 import pygame
 
-def FrameSimilarity(frames_jpg_path, isCentered):
+def CacheImages(frames_jpg_path):
+    files = [f for f in os.listdir(frames_jpg_path) if isfile(join(frames_jpg_path,f))]
+    files.sort()
+    # initialize array
+    all_frames = []
+    # number of adjacent frames
+    numadj = len(files)
+    # loop through all adjacent frames and calculate the ssi
+    for i in range (0, numadj):
+    # for i in range (0, 3000):
+        all_frames.append(cv2.imread(frames_jpg_path+'frame'+str(i)+'.jpg'))
+
+    return all_frames
+
+def FrameSimilarity(frames_jpg_path, isCentered, all_frames):
     # calculates the "structured similarity index" between adjacent frames
     # ssim() looks at luminance, contrast and structure, it is a scikit-image function
     # we use ssim() for both (1) Shot Change detection, and (2) Action weight
@@ -50,12 +64,14 @@ def FrameSimilarity(frames_jpg_path, isCentered):
     # loop through all adjacent frames and calculate the ssi
     for i in range (0, numadj):
     # for i in range (0, 3000):
-        frame_a = cv2.imread(frames_jpg_path+'frame'+str(i)+'.jpg')
-        frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+1)+'.jpg')
+        # frame_a = cv2.imread(frames_jpg_path+'frame'+str(i)+'.jpg')
+        # frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+1)+'.jpg')
+        frame_a = all_frames[i]
+        frame_b = all_frames[i+1]
         # crop frame images to center-weight them
         if isCentered is True:
-            crop_img_a = frame_a[20:160, 50:270] #y1:y2 x1:x2 orginal is 320 w x 180 h
-            crop_img_b = frame_b[20:160, 50:270]
+            crop_img_a = frame_a[40:120, 80:240] #y1:y2 x1:x2 orginal is 320 w x 180 h
+            crop_img_b = frame_b[40:120, 80:240]
         else:
             crop_img_a = frame_a
             crop_img_b = frame_b
@@ -66,7 +82,7 @@ def FrameSimilarity(frames_jpg_path, isCentered):
         ssi_array.append(ssim_ab)
     return (ssi_array)
 
-def FrameChange(ssi_array, frames_jpg_path):
+def FrameChange(ssi_array, frames_jpg_path, all_frames):
     # this function finds the frames at the shot boundary
     # length of ssi_array, how many adjacent frames
     num = len(ssi_array)
@@ -88,8 +104,11 @@ def FrameChange(ssi_array, frames_jpg_path):
         frame_b_index = i + 2
         if (frame_b_index >= num-3):
             frame_b_index = num-3-1
-        frame_a = cv2.imread(frames_jpg_path+'frame'+str(frame_a_index)+'.jpg')
-        frame_b = cv2.imread(frames_jpg_path+'frame'+str(frame_b_index)+'.jpg')
+
+        frame_a = all_frames[frame_a_index]
+        frame_b = all_frames[frame_b_index]
+        # frame_a = cv2.imread(frames_jpg_path+'frame'+str(frame_a_index)+'.jpg')
+        # frame_b = cv2.imread(frames_jpg_path+'frame'+str(frame_b_index)+'.jpg')
 
         hist1 = []
         color = ('b','g','r')
@@ -275,7 +294,7 @@ def ShotArray(framechange_array):
         shot_array.append([shot_begin,shot_end])
     return(shot_array)
 
-def FindMotion(framechange_array, frames_jpg_path):
+def FindMotion(framechange_array, frames_jpg_path, all_frames):
     files = [f for f in os.listdir(frames_jpg_path) if isfile(join(frames_jpg_path,f))]
     files.sort()
 
@@ -286,10 +305,12 @@ def FindMotion(framechange_array, frames_jpg_path):
     residual_metrics = [0]
 
     for i in range (0, numadj-motion_step_size, motion_step_size):
-        frame_a = cv2.imread(frames_jpg_path+'frame'+str(i)+'.jpg')
-        frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+motion_step_size)+'.jpg')
+        frame_a = all_frames[i]
+        frame_b = all_frames[i+motion_step_size]
+        # frame_a = cv2.imread(frames_jpg_path+'frame'+str(i)+'.jpg')
+        # frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+motion_step_size)+'.jpg')
 
-        residual_metric = BlockMatching.main(frame_a, frame_b, outfile="OUTPUT", saveOutput=False, blockSize = 32)
+        residual_metric = BlockMatching.main(frame_a, frame_b, outfile="OUTPUT", saveOutput=False, blockSize = 64)
 
         residual_metrics.append(residual_metric)
 
@@ -344,7 +365,7 @@ def FindAction(framechange_array, ssi_array):
     action_array = [round(num, 3) for num in action_array_normalized]
     return(action_array)
 
-def FindFaces(framechange_array, frames_jpg_path):
+def FindFaces(framechange_array, frames_jpg_path, all_frames):
     # Load face classifier, using "Haar" classifier, basic but works fine
     face_classifier = cv2.CascadeClassifier('haarcascade_face_classifier.xml')
     # initialize array variable to record faces
@@ -357,7 +378,8 @@ def FindFaces(framechange_array, frames_jpg_path):
             # url of frame image to analyze
             filename=frames_jpg_path+'frame'+str(y)+'.jpg'
             # read it into OpenCV
-            img = cv2.imread(filename)
+            # img = cv2.imread(filename)
+            img = all_frames[y]
             # convert to grayscale
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             # detect faces
@@ -372,7 +394,7 @@ def FindFaces(framechange_array, frames_jpg_path):
     face_array = [round(num, 3) for num in face_array_normalized]
     return(face_array)
 
-def FindPeople(framechange_array, frames_jpg_path):
+def FindPeople(framechange_array, frames_jpg_path, all_frames):
     # OpenCV has a pre-trained person model using Histogram Oriented Gradients (HOG)
     # and Linear SVM
     hog = cv2.HOGDescriptor()
@@ -386,7 +408,8 @@ def FindPeople(framechange_array, frames_jpg_path):
             # url of frame image to analyze
             filename=frames_jpg_path+'frame'+str(y)+'.jpg'
             # read it into OpenCV
-            image = cv2.imread(filename)
+            image = all_frames[y]
+            # image = cv2.imread(filename)
             # resize the image to increase speed (may try this on face detect as well)
             image = imutils.resize(image, width=min(400, image.shape[1]))
             orig = image.copy()
@@ -414,7 +437,7 @@ def FindAudioShots(framechange_array, audio_path):
         aave.append(np.average(F[features[i],:]))
 
     which_shots = np.zeros(len(F[features[0],:])).flatten()
-    print(which_shots.shape)
+    # print(which_shots.shape)
 
     for i in range(len(F[features[0],:])):
         for j in range(len(features)):
@@ -470,7 +493,7 @@ def TotalWeights(shot_array, action_array, face_array, people_array, audio_array
     # returns a multi-level weighted array [shot start, shot end, total weight]
     return(totalweight_array)
 
-def SaveSummaryFrames(totalweight_array, summary_frame_path, frames_jpg_path, action_array, face_array, people_array, audio_array):
+def SaveSummaryFrames(totalweight_array, summary_frame_path, frames_jpg_path, action_array, face_array, people_array, audio_array, all_frames):
     # with weighted shots, save the summary frames into summary_frame_path
     # sort the array by weight descending, best shots first
     sorted_array = sorted(totalweight_array, key=lambda x: x[2], reverse=True)
@@ -525,7 +548,8 @@ def SaveSummaryFrames(totalweight_array, summary_frame_path, frames_jpg_path, ac
         # print(str(start))
         for z in range (start, end):
             shot_image = frames_jpg_path+'frame'+str(z)+'.jpg'
-            img = cv2.imread(shot_image)
+            # img = cv2.imread(shot_image)
+            img = all_frames[z]
             summary_image = summary_frame_path+str(z)+'.jpg'
             # add shot number to frame
             cv2.putText(
@@ -543,7 +567,7 @@ def sort(lst):
     return sorted(lst, key = str)
 
 # Convert frames folder to video using OpenCV
-def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_path,new_audio_path,isML=False, audioOnly=False):
+def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_path,new_audio_path, all_frames,isML=False, audioOnly=False):
     frame_array = []
     audio_frames = []
 
@@ -578,7 +602,8 @@ def FramesToVideo(summary_frame_path,pathOut,fps,frame_width,frame_height,audio_
 
         if audioOnly is False:
             #reading each files
-            img = cv2.imread(filename)
+            # img = cv2.imread(filename)
+            img = all_frames[i]
             # height, width, layers = img.shape
             # size = (width,height)
             #inserting the frames into an image array
@@ -700,16 +725,22 @@ def main():
         if os.path.exists(collage_path):
             os.remove(collage_path)
 
+        all_frames = CacheImages(frames_jpg_path)
+
+        print("Time taken: ", time.time()-start_time, "s")
+
         # get ssi_array, the structured similarity between adjacent frames
         print ('\nssi_array')
         print ('the similarity between adjacent frames ... takes a long minute')
-        ssi_array = FrameSimilarity(frames_jpg_path, False)
+        ssi_array = FrameSimilarity(frames_jpg_path, True, all_frames)
         print(str(ssi_array[0 : 50])+' ... more')
+
+        print("Time taken: ", time.time()-start_time, "s")
 
         # get the framechange_array, which are the shot boundary frames
         print ('\nframechange_array')
         print ('these are the frames where the shot changed')
-        framechange_array = FrameChange(ssi_array, frames_jpg_path)
+        framechange_array = FrameChange(ssi_array, frames_jpg_path, all_frames)
         print (str(len(framechange_array))+' framechangess in the video')
         print(str(framechange_array))
 
@@ -718,6 +749,8 @@ def main():
         shot_array = ShotArray(framechange_array)
         print (str(len(shot_array))+' shots in the video')
         print(str(shot_array))
+
+        print("Time taken: ", time.time()-start_time, "s")
 
         # FOR ML
 
@@ -743,15 +776,19 @@ def main():
 
         # For motion estimation
         print ('\naction_array')
-        action_array = FindMotion(framechange_array, frames_jpg_path)
+        action_array = FindMotion(framechange_array, frames_jpg_path, all_frames)
         print(str(len(action_array))+' action weights')
         print(str(action_array))
+
+        print("Time taken: ", time.time()-start_time, "s")
         
         # get the audio array
         print('\naudio_array')
         audio_array = FindAudioShots(framechange_array, audio_path)
         print('there are '+str(len(audio_array))+' audio weights')
         print(str(audio_array))
+
+        print("Time taken: ", time.time()-start_time, "s")
 
         # get action_array, shows the average action weight for each shot
         # print ('\naction_array')
@@ -764,9 +801,11 @@ def main():
 
         # get the face array
         print('\nface_array')
-        face_array = FindFaces(framechange_array, frames_jpg_path)
+        face_array = FindFaces(framechange_array, frames_jpg_path, all_frames)
         print(str(len(face_array))+' face weights')
         print(str(face_array))
+
+        print("Time taken: ", time.time()-start_time, "s")
 
         # get the people array
         # print('\npeople_array')
@@ -784,19 +823,17 @@ def main():
         print(str(totalweight_array))
 
         # create summary frames in a folder
-        SaveSummaryFrames(totalweight_array,summary_frame_path, frames_jpg_path, action_array, face_array, people_array, audio_array)
-
-        
+        SaveSummaryFrames(totalweight_array,summary_frame_path, frames_jpg_path, action_array, face_array, people_array, audio_array, all_frames)
 
         # create summary video
         print('\nfrom the summary frames, creating a summary video')
-        FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path, new_audio_path, False, True)
+        FramesToVideo(summary_frame_path, summary_video_path, 30, 320, 180, audio_path, new_audio_path, all_frames, False, True)
         print('the summary video is stored as '+summary_video_path)
 
         print("Time taken: ", time.time()-start_time, "s")
 
         # Adding audio to video
-        SyncVideoWithAudio(summary_video_path, summary_video_audio_path, new_audio_path)
+        # SyncVideoWithAudio(summary_video_path, summary_video_audio_path, new_audio_path)
 
         # # optional - make a photo collage of the shots
         print('\nbonus: photo collage of scenes saved as collage.jpg in the root folder')
