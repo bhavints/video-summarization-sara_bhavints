@@ -138,7 +138,7 @@ def PlayVideo(summary_frame_path, summary_audio_path):
 
 if __name__=="__main__":
     
-    video_names = ['soccer', 'concert', 'meridian']
+    video_names = ['test_video', 'test_video_2']
 
     for i in range(len(video_names)):
         # name of the video to process
