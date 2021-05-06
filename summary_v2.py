@@ -125,7 +125,7 @@ def FrameChange(ssi_array, frames_jpg_path):
             firstCheckPass = True
         
         # 0.6 is chosen because a 60% change in similarity works well for a shot change threshold
-        if (firstCheckPass is True and i-last_hit > 22):
+        if (firstCheckPass is True and i-last_hit > 15):
             framechange_array.append(i+2)
             last_hit = i+2
 
