@@ -107,13 +107,41 @@ def FrameChange(ssi_array, frames_jpg_path):
 
         average_dist = 0
 
+        hist1a_max = []
+        hist2a_max = []
+        SimilarColorCheck = False
+
         for j in range(3):
             dist = cv2.compareHist(hist1a[j], hist2a[j], 0)
             average_dist = average_dist + dist
+            max_val = 0
+
+            max_color = 0
+            for k in range(len(hist1a[j])):
+                if hist1a[j][k][0] > max_val:
+                    max_val = hist1a[j][k][0]
+                    max_color = k
+            hist1a_max.append(max_color)
+
+            max_val = 0
+            max_color = 0
+            for k in range(len(hist2a[j])):
+                if hist2a[j][k][0] > max_val:
+                    max_val = hist2a[j][k][0]
+                    max_color = k
+            hist2a_max.append(max_color)
+
+        CumulativeColorDiffs = 0
+
+        for j in range(3):
+            CumulativeColorDiffs += abs(hist1a_max[j] - hist2a_max[j])
+
+        if CumulativeColorDiffs < 20:
+            SimilarColorCheck = True
 
         average_dist = average_dist / 3.0
 
-        ssim_histo_val = (1.0 - ssim_bc/ssim_ab) + (1.0 - ssim_bc/ssim_cd) + (1.0 - average_dist)
+        ssim_histo_val = min(max((1.0 - ssim_bc/ssim_ab), 0), 1.0) + min(max((1.0 - ssim_bc/ssim_cd), 0), 1.0) + (1.0 - average_dist)
 
         if (ssim_bc/ssim_ab < 0.6 and ssim_bc/ssim_cd < 0.6):
             if average_dist < 0.95:
@@ -121,7 +149,9 @@ def FrameChange(ssi_array, frames_jpg_path):
         elif (ssim_bc/ssim_ab < 0.6 or ssim_bc/ssim_cd < 0.6):
             if average_dist < 0.4:
                 firstCheckPass = True
-        elif ssim_histo_val > 0.8:
+            elif ssim_histo_val > 1.0 and SimilarColorCheck is False:
+                firstCheckPass = True
+        elif ssim_histo_val > 1.0 and SimilarColorCheck is False:
             firstCheckPass = True
         
         # 0.6 is chosen because a 60% change in similarity works well for a shot change threshold
@@ -257,7 +287,7 @@ def FindMotion(framechange_array, frames_jpg_path):
         frame_a = cv2.imread(frames_jpg_path+'frame'+str(i)+'.jpg')
         frame_b = cv2.imread(frames_jpg_path+'frame'+str(i+1)+'.jpg')
 
-        residual_metric, residual_frame = BlockMatching.main(frame_a, frame_b, outfile="OUTPUT", saveOutput=False, blockSize = 64)
+        residual_metric, residual_frame = BlockMatching.main(frame_a, frame_b, outfile="OUTPUT", saveOutput=False, blockSize = 32)
 
         residual_metrics.append(residual_metric)
 
@@ -413,9 +443,9 @@ def FindAudioShots(framechange_array, audio_path):
 def TotalWeights(shot_array, action_array, face_array, people_array, audio_array):
     # use numpy to add the weight arrays
     # for now a simple addition of action, face, people weights
-    face_array_scaled = [element * 0.25 for element in face_array]
-    people_array_scaled = [element * 0.25 for element in people_array]
-    #audio_array_scaled = [element * 0.5 for element in audio_array]
+    face_array_scaled = [element * 0.35 for element in face_array]
+    people_array_scaled = [element * 0.35 for element in people_array]
+    audio_array_scaled = [element * 0.7 for element in audio_array]
     arr = []
     arr.append(action_array)
     arr.append(face_array_scaled)
@@ -591,7 +621,7 @@ def SyncVideoWithAudio(old_video_name, video_name, audio_path):
 
 def main():
 
-    video_names = ['soccer']
+    video_names = ['test_video', 'test_video_2']
 
     for i in range(len(video_names)):
         # name of the video to process
