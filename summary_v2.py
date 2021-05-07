@@ -552,14 +552,14 @@ def SaveSummaryFrames(totalweight_array, summary_frame_path, frames_jpg_path, ac
             img = all_frames[z]
             summary_image = summary_frame_path+str(z)+'.jpg'
             # add shot number to frame
-            cv2.putText(
-                img, #numpy image
-                str(y), #text
-                (10,60), #position
-                cv2.FONT_HERSHEY_SIMPLEX, #font
-                2, #font size
-                (0, 0, 255), #font color red
-                4) #font stroke
+            # cv2.putText(
+            #     img, #numpy image
+            #     str(y), #text
+            #     (10,60), #position
+            #     cv2.FONT_HERSHEY_SIMPLEX, #font
+            #     2, #font size
+            #     (0, 0, 255), #font color red
+            #     4) #font stroke
             cv2.imwrite(summary_image,img)
             count = count+1
 
